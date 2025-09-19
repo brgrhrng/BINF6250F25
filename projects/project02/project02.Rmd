@@ -45,6 +45,8 @@ Our goal today will be to implement a Markov model built from words. For our exa
 For our initial implementation of the Markov Model, we will use the simple example of Dr. Seuss: "One fish two fish red fish blue fish."
 
 ```{python}
+from collections import Counter
+
 def build_markov_model(markov_model, new_text):
     '''
     Function to build or add to a 1st order Markov model given a string of text
@@ -68,8 +70,60 @@ def build_markov_model(markov_model, new_text):
     For each word in text:
     Increment markov_model[word][next_word]
     
+         Input:  markov_model type dict of dicts of word:(nextword: frequency)
+                 new_text (str):  string to build or add to the markov_model
+         
+         list_of_words= split(" ",new_text)
+         
+         start_state() # pointer to the first item in the chain *S* -> "one":1
+         
+         index_counter = 0
+         length = len(list_of_words)
+         for (word in list_of_words):
+            if index_counter<length:
+                if ( word in markov_model first level ):
+                    either create or append to that level's subdictionary
+                else: # not in initial list of items:
+                    append to 1st level dictionary with word+1
+            increment index_counter
+             
+         update_frequencies?(markov_model) # need to confirm col frequency = 1?
+         
+         end_state(add to second level dictionary list_of_words[length][] {"*E*":1} ) # pointer to the last item in the chain "*E*"
+         
+         return(markov_model)
+    
     '''
-    pass
+
+    list_of_words = new_text.split()
+    
+    if not markov_model:
+        markov_model = {}
+        markov_model["*S*"] = { list_of_words[0]:1 }
+
+    index = 0
+    length = len(list_of_words)
+    
+    for word in list_of_words:
+        if (index+1) < length:
+            test = markov_model.get(word,"Not present")
+            if test == "Not present":
+                markov_model[word] = { list_of_words[index+1]:1 }
+            else:
+                print(list_of_words[index+1],index+1)
+                markov_model[word].setdefault( list_of_words[index+1]:1 )
+              #  test2 = markov_model[word].get(list_of_words[index+1],"not in second dictionary")
+              #  if test == "not in second dictionary":
+              #      markov_model[word].setdefault( list_of_words[index+1]:1 )
+              #  else:
+              #      markov_model[word].setdefault( list_of_words[index+1]:1 )
+            index+=1
+        else:
+            markov_model[word][index] = { list_of_words[index]:1 }
+            markov_model[word][index] = { "*E*":1 }# end state
+            
+    #    markov_model.update(word)
+    return markov_model
 
 markov_model = dict()
 text = "one fish two fish red fish blue fish"
