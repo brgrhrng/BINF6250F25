@@ -1,0 +1,199 @@
+---
+title: "Project 02"
+author: "USER NAME"
+date: "`r Sys.Date()`"
+output:
+    github_document:
+        toc: true
+        toc_depth: 2
+        html_preview: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library('reticulate')
+use_python('/usr/bin/python3')
+```
+
+# Markov Chains
+
+---
+
+In class today we will be implementing a Markov chain to process sentences
+
+---
+
+## Learning Objectives
+
+1. Students will be able to explain the Markov Chain process  
+1. Implement a Markov Chain
+
+---
+
+## Background
+
+Markov Chains represent a series of events following the Markov Property: future states are memory-less in that they depend only on the current state. This can be expanded to the idea of variable order Markov models where there is a variable-length memory (eg. 1st order Markov Model). Markov models consist of fully observable states.
+
+> A common example of this is in predicting the weather: We can clearly see the current weather and would like to predict tomorrow's weather. This is also applicable to biology with one case being CpG islands.
+
+Our goal today will be to implement a Markov model built from words. For our example text, we will use the classic example of Dr. Seuss because of the repetitive nature of the text.
+
+---
+
+## Train Markov model
+
+For our initial implementation of the Markov Model, we will use the simple example of Dr. Seuss: "One fish two fish red fish blue fish."
+
+```{python}
+def build_markov_model(markov_model, new_text):
+    '''
+    Function to build or add to a 1st order Markov model given a string of text
+    We will store the markov model as a dictionary of dictionaries
+    The key in the outer dictionary represents the current state
+    and the inner dictionary represents the next state with their contents containing
+    the transition probabilities.
+    Note: This would be easier to read if we were to build a class representation
+    of the model rather than a dictionary of dictionaries, but for simplicitiy
+    our implementation will just use this structure.
+    
+    Args: 
+    markov_model (dict of dicts): a dictionary of word:(next_word:frequency pairs)
+    new_text (str): a string to build or add to the moarkov_model
+    
+    Returns:
+    markov_model (dict of dicts): an updated markov_model
+    
+    Pseudocode:
+    Add artificial states for start and end
+    For each word in text:
+    Increment markov_model[word][next_word]
+    
+    '''
+    pass
+
+markov_model = dict()
+text = "one fish two fish red fish blue fish"
+markov_model = build_markov_model(markov_model, text)
+print(markov_model)
+```
+
+Expected output:
+```
+{'*S*': {'one': 1}, 'one': {'fish': 1}, 'fish': {'two': 1, 'red': 1, 'blue': 1, '*E*': 1}, 'two': {'fish': 1}, 'red': {'fish': 1}, 'blue': {'fish': 1}}
+```
+
+### Nth order Markov chain
+
+In the above model, each event or word is output from only the previous state with no memory of any prior states. While this is useful in some cases, typical biological applications of Markov chains require higher-order models to accurately capture what we know about a system. For instance, in attempting to identify coding regions of a genome, we know that open reading frames (ORFs) contain codon triplets, and so a third or sixth order Markov chain would better describe these regions. Here you will implement a generalized form of our previous Markov Chain to allow for Nth order chains.
+
+```{python}
+def build_markov_model(markov_model, text, order=1):
+    '''
+    Function to build or add to a Nth order Markov model given a string of text
+    
+    Args: 
+    markov_model (dict of dicts): a dictionary of word:(next_word:frequency pairs)
+    or None if a new model is being built
+    new_text (str): a string to build or add to the moarkov_model
+    order (int): the number of previous states to consider for the model
+    
+    Returns:
+    markov_model (dict of dicts): an updated/new markov_model
+    '''
+    pass
+
+markov_model = dict()
+text = "one fish two fish red fish blue red fish blue"
+markov_model = build_markov_model(markov_model, text, order=2)
+markov_model
+```
+
+## Generate text from Markov Model
+
+Markov models are "generative models". That is, the probability states in the model can be used to generate output following the conditional probabilities in the model.
+
+We will now generate a sequence of text from the Markov model. For this section, I recommend using np.random.choice, which allows for you to provide a probability distribution for drawing the next edge in the chain.
+
+```{python}
+import numpy as np
+
+
+def get_next_word(current_word, markov_model, seed=42):
+    '''
+    Function to randomly move a valid next state given a markov model
+    and a current state (word)
+    
+    Args: 
+    current_word (tuple): a word that exists in our model
+    markov_model (dict of dicts): a dictionary of word:(next_word:frequency pairs)
+    
+    Returns:
+    next_word (str): a randomly selected next word based on transition probabilies
+    
+    Pseudocode:
+    Calculate transition probilities for all next states from a given state (counts/sum)
+    Randomly draw from these to generate the next state
+    
+    '''
+    pass
+
+
+def generate_random_text(markov_model, seed=42):
+    '''
+    Function to generate text given a markov model
+    
+    Args: 
+    markov_model (dict of dicts): a dictionary of word:(next_word:frequency pairs)
+    
+    Returns:
+    sentence (str): a randomly generated sequence given the model
+    
+    Pseudocode:
+    Initialize sentence at start state
+    Until End State:
+    append get_next_word(current_word, markov_model)
+    Return sentence
+    
+    '''
+    pass
+```
+
+---
+
+## All the Fish
+
+Up till now, you have only been working with a line or two of the Dr. Seuss' _One Fish, Two Fish_. Now, I want you to build a model using the whole book and try different orders of Markov models.
+
+```{python}
+# Now just add some more training data to the markov model. You can find it under data/one_fish_two_fish.txt
+
+markov_model = dict()
+# Read in the whole book
+pass
+
+print (generate_random_text(markov_model,seed=7))
+```
+
+---
+
+## Shakespeare
+
+Now, let's play around with some Shakespeare.
+
+```{python}
+# An example of a more complex text that we can use to generate more complex output
+sonet_markov_model = dict()
+file = open("data/sonnets.txt", "r")
+sonet = ""
+for line in file:
+    line = line.strip()
+    if line == "":
+        # Empty line so build model
+        sonet_markov_model = build_markov_model(sonet_markov_model, sonet, order=2)
+        sonet = ""
+    else:
+        sonet = sonet + ' ' + line
+ 
+print (generate_random_text(sonet_markov_model,seed=7))
+```
+
