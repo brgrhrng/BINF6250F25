@@ -1,6 +1,6 @@
 ---
 title: "Project 02"
-author: "USER NAME"
+author: "Brooks Groharing, Jacqueline Caldwell"
 date: "`r Sys.Date()`"
 output:
     github_document:
@@ -95,34 +95,31 @@ def build_markov_model(markov_model, new_text):
     
     '''
 
-    list_of_words = new_text.split()
+    list_of_words = new_text.split() # put my text into a list of substrings/words
     
-    if not markov_model:
+    if not (markov_model == 0):
         markov_model = {}
         markov_model["*S*"] = { list_of_words[0]:1 }
+    else 
+        print("markov_model that was sent was not empty, returning original markov_model")
+        return markov_model
 
     index = 0
-    length = len(list_of_words)
+    length = len(list_of_words) # get the length; so that we don't go past the end of the list
     
     for word in list_of_words:
-        if (index+1) < length:
+        if ((index+1) < length):
             test = markov_model.get(word,"Not present")
-            if test == "Not present":
-                markov_model[word] = { list_of_words[index+1]:1 }
-            else:
-                print(list_of_words[index+1],index+1)
-                markov_model[word].setdefault( list_of_words[index+1]:1 )
-              #  test2 = markov_model[word].get(list_of_words[index+1],"not in second dictionary")
-              #  if test == "not in second dictionary":
-              #      markov_model[word].setdefault( list_of_words[index+1]:1 )
-              #  else:
-              #      markov_model[word].setdefault( list_of_words[index+1]:1 )
-            index+=1
-        else:
-            markov_model[word][index] = { list_of_words[index]:1 }
-            markov_model[word][index] = { "*E*":1 }# end state
             
-    #    markov_model.update(word)
+            if (test == "Not present"):
+                markov_model[word] = { list_of_words[index+1]:1 } # create a new subdictionary
+            else:
+                markov_model[word].setdefault( list_of_words[index+1], 1 ) # add to the subdict that is already there
+             
+            index+=1 
+        else:
+            markov_model[word].setdefault("*E*",1) # end state
+            
     return markov_model
 
 markov_model = dict()
