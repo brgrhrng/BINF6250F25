@@ -97,10 +97,9 @@ def build_markov_model(markov_model, new_text):
 
     list_of_words = new_text.split() # put my text into a list of substrings/words
     
-    if not (markov_model == 0):
-        markov_model = {}
+    if  len(markov_model) == 0:
         markov_model["*S*"] = { list_of_words[0]:1 }
-    else 
+    else: 
         print("markov_model that was sent was not empty, returning original markov_model")
         return markov_model
 
