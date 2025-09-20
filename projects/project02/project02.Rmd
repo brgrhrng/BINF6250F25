@@ -100,7 +100,7 @@ def build_markov_model(markov_model, new_text):
     if not (markov_model == 0):
         markov_model = {}
         markov_model["*S*"] = { list_of_words[0]:1 }
-    else 
+    else: 
         print("markov_model that was sent was not empty, returning original markov_model")
         return markov_model
 
