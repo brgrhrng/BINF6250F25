@@ -186,7 +186,7 @@ def build_markov_model(markov_model, text, order=1):
         # Write the updated inner dict to the outer dict
         markov_model[prior_words] = inner_dict
         
-    print(markov_model)
+    return markov_model
     
 markov_model = dict()
 text = "one fish two fish red fish blue red fish blue"
@@ -221,7 +221,6 @@ def get_next_word(current_word, markov_model, seed=42):
     Randomly draw from these to generate the next state
     
     '''
-    pass
 
 
 def generate_random_text(markov_model, seed=42):
