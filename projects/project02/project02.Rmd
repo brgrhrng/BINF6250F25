@@ -150,8 +150,43 @@ def build_markov_model(markov_model, text, order=1):
     Returns:
     markov_model (dict of dicts): an updated/new markov_model
     '''
-    pass
-
+    
+    # Extract words, separated by spaces
+    list_of_words = text.split()
+    
+    
+    # Create a fake start state, with a 1-count transition right to the first word.
+    # initalize a sub-dict for *S* if we don't yet have one 
+    markov_model["*S*"] = markov_model.get("*S*", dict())
+    
+    # Increment a counter for *S* -> word 0
+    word_0 = list_of_words[0]
+    markov_model["*S*"][word_0] = markov_model["*S*"].get(word_0,0) + 1
+    
+    
+    # Since our keys are always 1 word, the end-state can just be appended as a "word"
+    list_of_words.append("*E*")
+    
+    # loop through all n-length spans of words (ending before our "window" reaches out of bounds)
+    for i in range(0, len(list_of_words)-order):
+        
+        # concatenate the words to form a single string
+        prior_words = " ".join(list_of_words[i:i+order]) # separate by space!
+        
+        # get the next word following our current set
+        next_word = list_of_words[i+order]
+        
+        # get the dict representing our prior_words key (or an empty one if it doesn't exist)
+        inner_dict = markov_model.get(prior_words, dict())
+        
+        # Increment the counter for the next word (initializing it if it doesn't exist)
+        inner_dict[next_word] = inner_dict.get(next_word,0) + 1
+        
+        # Write the updated inner dict to the outer dict
+        markov_model[prior_words] = inner_dict
+        
+    return markov_model
+    
 markov_model = dict()
 text = "one fish two fish red fish blue red fish blue"
 markov_model = build_markov_model(markov_model, text, order=2)
@@ -185,8 +220,27 @@ def get_next_word(current_word, markov_model, seed=42):
     Randomly draw from these to generate the next state
     
     '''
-    pass
+    # Convert raw counts to transition probabilities
+    out_states = markov_model[current_word]
+    total = sum(out_states.values())
+    
+    words = []
+    probs = []
+    for key in out_states.keys():
+        words.append(key)
+        probs.append(out_states[key] / total)
+    
+    print(words)
+    print(probs)
+    
+    # Draw one random word (key) based on probabilities (values)
+    next_word = np.random.choice(words, 1, probs)
+    
+    print(next_word)
+    
+    return next_word
 
+get_next_word("fish blue",markov_model)
 
 def generate_random_text(markov_model, seed=42):
     '''
