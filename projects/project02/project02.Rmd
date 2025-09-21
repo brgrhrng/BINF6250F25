@@ -221,7 +221,27 @@ def get_next_word(current_word, markov_model, seed=42):
     Randomly draw from these to generate the next state
     
     '''
+    # Convert raw counts to transition probabilities
+    out_states = markov_model[current_word]
+    total = sum(out_states.values())
+    
+    words = []
+    probs = []
+    for key in out_states.keys():
+        words.append(key)
+        probs.append(out_states[key] / total)
+    
+    print(words)
+    print(probs)
+    
+    # Draw one random word (key) based on probabilities (values)
+    next_word = np.random.choice(words, 1, probs)
+    
+    print(next_word)
+    
+    return next_word
 
+get_next_word("fish blue",markov_model)
 
 def generate_random_text(markov_model, seed=42):
     '''
