@@ -45,9 +45,7 @@ Our goal today will be to implement a Markov model built from words. For our exa
 For our initial implementation of the Markov Model, we will use the simple example of Dr. Seuss: "One fish two fish red fish blue fish."
 
 ```{python}
-from collections import Counter
-
-def build_markov_model(markov_model, new_text):
+def build_markov_model_one(markov_model, new_text):
     '''
     Function to build or add to a 1st order Markov model given a string of text
     We will store the markov model as a dictionary of dictionaries
@@ -123,7 +121,7 @@ def build_markov_model(markov_model, new_text):
 
 markov_model = dict()
 text = "one fish two fish red fish blue fish"
-markov_model = build_markov_model(markov_model, text)
+markov_model = build_markov_model_one(markov_model, text)
 print(markov_model)
 ```
 
@@ -272,10 +270,23 @@ Up till now, you have only been working with a line or two of the Dr. Seuss' _On
 # Now just add some more training data to the markov model. You can find it under data/one_fish_two_fish.txt
 
 markov_model = dict()
-# Read in the whole book
+book_text=""
+
+try:
+    with open("data/one_fish_two_fish.txt", "r") as file:
+        while True:
+            for line in file:
+                if not line:  # Check if the line is an empty string (EOF)
+                    break
+                line = line.strip()
+                book_text = book_text + ' ' + line
+        #Now that book has been read in, build model
+        markov_model = build_markov_model(markov_model, book_text, order=4)
+except FileNotFoundError:
+    print("Error: data/one_fish_two_fish.txt not found.")
 pass
 
-print (generate_random_text(markov_model,seed=7))
+# print (generate_random_text(markov_model,seed=7))
 ```
 
 ---
@@ -286,6 +297,7 @@ Now, let's play around with some Shakespeare.
 
 ```{python}
 # An example of a more complex text that we can use to generate more complex output
+'''
 sonet_markov_model = dict()
 file = open("data/sonnets.txt", "r")
 sonet = ""
@@ -299,5 +311,6 @@ for line in file:
         sonet = sonet + ' ' + line
  
 print (generate_random_text(sonet_markov_model,seed=7))
+'''
 ```
 
