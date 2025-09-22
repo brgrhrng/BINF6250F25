@@ -1,0 +1,56 @@
+---
+title: "Project 02"
+author: "Brooks Groharing, Jacqueline Caldwell"
+date: "`r Sys.Date()`"
+output:
+    github_document:
+        toc: true
+        toc_depth: 2
+        html_preview: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library('reticulate')
+```
+
+# Introduction
+
+* Authors:  Brooks Groharing, Jacqueline Caldwell
+* Class: BINF 6250; Fall 2025
+* Project: Project02
+* Due Date: 9/24/2025
+
+## Description
+The goal of this project is to implement Markov model technology in stages, first from a 1 level Markov Model, then a N level Markov that is able to take in a book size length of text, and finally a book/text generator that uses the built Markov model to create the text or a book.   
+
+The markov model itself is created as a dictionary of dictionaries, and was modified from inital form to have the probability of particular text following a string of text, which is what allows us to create text from our markov_model.  In addition to the probabilities, we are using np.random.choice to select (if there are options) the next section of text for our book.
+
+# Pseudocode
+Put pseudocode in this box:
+
+``` {}
+Some pseudocode here
+```
+
+# Successes
+Description of the team's learning points
+
+# Struggles
+
+## Jacque
+* Struggles with Explorer/OnDemand/RStudio; uncertain if disk is filling up or there is a protection problem, or a system 
+* Read file code never returns a null line for the file one_fish_two_fish.txt.  When using the code that was given to us for reading sonnets.txt ; I was having problems because the markov model was never being built, turns out that was because line never returned "" from the file.  I do not know why this is, but it is repeatable.  Changed code to instead end the loop when the open/read file loop as my prior group did for project01, this seems to work.
+* Comfort with git is definately improving but getting a smooth workflow going continues to be a challenge.
+
+# Personal Reflections
+## Group Leader
+Group leader's reflection on the project
+
+## Other member (Jacque)
+This project was more straightforward than it first appeared.  Given what I was understanding at class, I thought we would have to be implementing something with multi-dimentional matrices (N level would be an N level matrix).  Coding became much easier once I figured out that was not the case. 
+
+I did not always feel that I knew what my next step to do in this project might be. I found myself often waiting for the next step in order to get something done.  In the future, perhaps asking to break down the project into smaller pieces?  I'm not sure.  Working on projects like this in my prior experience is difficult, because it's so much easier to break them into peices on the function line, rather than both implementing a funtion 'together'.
+
+# Generative AI Appendix
+As per the syllabus
