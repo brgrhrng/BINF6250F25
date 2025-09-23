@@ -46,6 +46,7 @@ For our initial implementation of the Markov Model, we will use the simple examp
 
 ```{python}
 def build_markov_model_one(markov_model, new_text):
+    
     '''
     Function to build or add to a 1st order Markov model given a string of text
     We will store the markov model as a dictionary of dictionaries
@@ -90,7 +91,6 @@ def build_markov_model_one(markov_model, new_text):
          end_state(add to second level dictionary list_of_words[length][] {"*E*":1} ) # pointer to the last item in the chain "*E*"
          
          return(markov_model)
-    
     '''
 
     list_of_words = new_text.split() # put my text into a list of substrings/words
@@ -119,10 +119,12 @@ def build_markov_model_one(markov_model, new_text):
             
     return markov_model
 
-markov_model = dict()
-text = "one fish two fish red fish blue fish"
-markov_model = build_markov_model_one(markov_model, text)
-print(markov_model)
+#Testing code
+#markov_model = dict()
+#text = "one fish two fish red fish blue fish"
+#markov_model = build_markov_model_one(markov_model, text)
+#print(markov_model)
+
 ```
 
 Expected output:
@@ -157,16 +159,16 @@ def build_markov_model(markov_model, text, order=1):
     # Create a fake start state, with a 1-count transition right to the first word.
     # initalize a sub-dict for *S* if we don't yet have one 
     markov_model["*S*"] = markov_model.get("*S*", dict())
-    
-    # Increment a counter for *S* -> word 0
-    word_0 = list_of_words[0]
-    markov_model["*S*"][word_0] = markov_model["*S*"].get(word_0,0) + 1
-    
+
     # For higher-order markov chains, we need a multi-word key linking word #2
     #   back to the start.
     if order > 1:
         list_of_words.insert(0,"*S*")
-    
+        next_word = " ".join(list_of_words[1:order+1])
+        inner_dict = markov_model.get("*S*", dict)
+        inner_dict[next_word] = inner_dict.get(next_word,0) + 1
+        markov_model["*S*"] = inner_dict
+     
     # Since our keys are always 1 word, the end-state can just be appended as a "word"
     list_of_words.append("*E*")
     
@@ -174,7 +176,7 @@ def build_markov_model(markov_model, text, order=1):
     length = len(list_of_words)
     
     # loop through all n-length spans of words (ending before our "window" reaches out of bounds)
-    for i in range(0, length-order):
+    for i in range(1, length-order):
         
         # concatenate the words to form a single string
         prior_words = " ".join(list_of_words[i:i+order]) # separate by space!
@@ -192,11 +194,13 @@ def build_markov_model(markov_model, text, order=1):
         markov_model[prior_words] = inner_dict
         
     return markov_model
-    
-markov_model = dict()
-text = "one fish two fish red fish blue red fish blue"
-markov_model = build_markov_model(markov_model, text, order=2)
-markov_model
+
+# Testing Section
+#markov_model = dict()
+#text = "one fish two fish red fish blue red fish blue"
+#markov_model = build_markov_model(markov_model, text, order=4)
+#markov_model
+
 ```
 
 
@@ -211,6 +215,7 @@ import numpy as np
 
 
 def get_next_word(current_word, markov_model, seed=42):
+
     '''
     Function to randomly move a valid next state given a markov model
     and a current state (word)
@@ -264,13 +269,13 @@ def generate_random_text(markov_model, seed=42):
     sentence = ""
     
     current_words = "*S*" # Always start wth the "start" state
-    next_word = ""
+    next_word = get_next_word(current_words, markov_model,seed)
     
-    iters = 0
+    iters = 1
     while(iters < 10000000):
         
         # Generate the next word
-        next_word = get_next_word(current_words, markov_model)
+        next_word = get_next_word(current_words, markov_model, seed)
         
         # If we've reached an end state, quit looping.
         if next_word == "*E*":
@@ -281,11 +286,12 @@ def generate_random_text(markov_model, seed=42):
         
         # Unless we are in the start state, drop the oldest word from "memory"
         #   If there is 1 word, we get an empty string--this is as intended
-        if current_words != "*S*":
+        if "*S*" in current_words:
+         #   current_words = current_words.split(" ")[1:]
+            current_words = next_word
+        else:
             current_words = " ".join(current_words.split(" ")[1:])
-        
-        # Append the next word to current_words string
-        current_words += " " + next_word
+            current_words += " " + next_word # Append the next word to current_words string;
         
         iters += 1
     
@@ -294,8 +300,9 @@ def generate_random_text(markov_model, seed=42):
     
     return sentence
 
-print(markov_model)
-generate_random_text(markov_model)
+# Testing area
+# generate_random_text(markov_model)
+
 ```
 
 ---
@@ -305,6 +312,7 @@ generate_random_text(markov_model)
 Up till now, you have only been working with a line or two of the Dr. Seuss' _One Fish, Two Fish_. Now, I want you to build a model using the whole book and try different orders of Markov models.
 
 ```{python}
+
 # Now just add some more training data to the markov model. You can find it under data/one_fish_two_fish.txt
 
 markov_model = dict()
@@ -312,22 +320,21 @@ book_text=""
 
 try:
     with open("data/one_fish_two_fish.txt", "r") as file:
-        while True:
-            for line in file:
-                if not line:  # Check if the line is an empty string (EOF)
-                    break
-                line = line.strip()
-                book_text = book_text + ' ' + line
+        for line in file:
+            if not line:  # Check if the line is an empty string (EOF)
+                break
+            line = line.strip()
+            book_text = book_text + ' ' + line
         #Now that book has been read in, build model
-        markov_model = build_markov_model(markov_model, book_text, order=4)
+        markov_model = build_markov_model(markov_model, book_text, order=3)
 except FileNotFoundError:
     print("Error: data/one_fish_two_fish.txt not found.")
 pass
 
 print (generate_random_text(markov_model,seed=7))
-```
 
----
+
+```
 
 
 ## Shakespeare
@@ -336,20 +343,22 @@ Now, let's play around with some Shakespeare.
 
 ```{python}
 # An example of a more complex text that we can use to generate more complex output
-sonet_markov_model = dict()
-file = open("data/sonnets.txt", "r")
-sonet = ""
-for line in file:
-    line = line.strip()
-    if line == "":
+def read_sonet():
+    sonet_markov_model = dict()
+    file = open("data/sonnets.txt", "r")
+    sonet = ""
+    for line in file:
+        line = line.strip()
+        if line == "":
         # Empty line so build model
-        sonet_markov_model = build_markov_model(sonet_markov_model, sonet, order=2)
-        sonet = ""
-    else:
-        sonet = sonet + ' ' + line
+            sonet_markov_model = build_markov_model(sonet_markov_model, sonet, order=2)
+            sonet = ""
+        else:
+            sonet = sonet + ' ' + line
  
-
-print (generate_random_text(sonet_markov_model,seed=7))
+    print (generate_random_text(sonet_markov_model,seed=7))
+    
+# read_sonet()
 ```
 
 
