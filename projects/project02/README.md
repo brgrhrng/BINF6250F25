@@ -13,17 +13,64 @@ The markov model itself is created as a dictionary of dictionaries, and was modi
 # Pseudocode
 Put pseudocode in this box:
 
-``` {}
-Some pseudocode here
+``` {python}
+build_markov_model(markov_model, string, order=n):
+    """Build or add to a Nth order Markov model given a string of text"""
+    
+    extract list of words from text
+    
+    get first n words from list
+    initialize markov_model[START][first_n] to 1
+    
+    append dummy END word to text
+    
+    for each n-length string of words:
+        get next word
+        increment markov_model[string][next_word]
+        
+    return markov_model
+
+
+
+get_next_word(current word, markov_model):
+    """Randomly generate a valid next state given a markov model and a current state"""
+    get valid output states from current word
+    sum counts from out_states
+    
+    probs = new list
+    for output state:
+        probs = count from state / total
+        
+    return(next word from states, weighted by probs)
+
+
+generate_random_text(markov_model):
+    """Generate a string of text using a markov model"""
+    
+    initialize empty string as sentence
+    
+    initialize state to "START"
+    next_word = get_next_word(state, markov_model)
+    
+    until next_word is END:
+        state = get_next_word(state, markov_model)
+        add next_word to sentence
+        
+        drop oldest word from STATE
+        append next_word to STATE
 ```
 
 # Code
 Please see the file project02.Rmd in this directory.
 
 # Successes
-Description of the team's learning points
+
+
+
 
 # Struggles
+
+## Brooks
 
 ## Jacque
 * Struggles with Explorer/OnDemand/RStudio; uncertain if disk is filling up or there is a protection problem, or a system 
@@ -45,4 +92,5 @@ Debugging is a pain when your system won't stay up.
 Rstudio does not give helpful syntax errors as it's row counters are completely wrong, and "relative row counters" are even more wrong.  Even then the syntax errors are not even about the real problem, they are usually about another downstream text issue.  
 
 # Generative AI Appendix
-As per the syllabus
+
+We did not make use of any generative AI tools in this project.
