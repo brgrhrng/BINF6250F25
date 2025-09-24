@@ -65,24 +65,32 @@ Please see the file project02.Rmd in this directory.
 
 # Successes
 
+* We were successful in implementing the construction and processing functions for a generalized nth-order markov chain, using it to create models from the provided datasets, and generating similar text output from them. 
 
-
+* We also had several mini-successes when it came to the project setup - getting it properly synced on explorer with the remote PR branch, resolving sometimes divergent pull requests on GitHub, etc. This aspect came with a decent amount of learning and troubleshooting, which is of course valuable experience.
 
 # Struggles
 
-## Brooks
+## Brooks (Group Leader)
 
-## Jacque
+* Connectivity issues and bugs on OOD occasionally cropped up, delaying and complicating development.
+* We had some difficulty conceptualizing and implementing the "start" state properly in our model; further, we would think we had this properly implemented, while testing it on 1, 2, or arbitrary nth-order markov chains, only for our tweaks to accidentally break our previously successful implementation in the other orders.
+    * We really would have benefitted from implementing a series of standard test examples across the possible orders, rather than manually changing the parameter and re-running our code to verify. 
+
+## Jacque (Group Member)
 * Struggles with Explorer/OnDemand/RStudio; uncertain if disk is filling up or there is a protection problem, or a system 
 * Read file code never returns a null line for the file one_fish_two_fish.txt.  When using the code that was given to us for reading sonnets.txt ; I was having problems because the markov model was never being built, turns out that was because line never returned "" from the file.  I do not know why this is, but it is repeatable.  Changed code to instead end the loop when the open/read file loop as my prior group did for project01, this seems to work.
 * Comfort with git is definately improving but getting a smooth workflow going continues to be a challenge.
 * GRRRR ondemand and RStudio issues/Explorer issues.
 
 # Personal Reflections
-## Group Leader
-Group leader's reflection on the project
+## Brooks
 
-## Other member (Jacque)
+Overall, I enjoyed this project. Some aspects (such as the get_next_word() function) were straightforward to implement, while others were much more of a puzzle.
+
+Collaborative programming continues to be a learning process, although I thought we made good use of our two zoom meetings to conceptually plan and debug our code. Bouncing ideas back and forth, and talking through the logic of our code and options for implementation was incredibly helpful for me.
+
+## Jacque
 This project was more straightforward than it first appeared.  Given what I was understanding at class, I thought we would have to be implementing something with multi-dimentional matrices (N level would be an N level matrix).  Coding became much easier once I figured out that was not the case. 
 
 I did not always feel that I knew what my next step to do in this project might be. I found myself often waiting for the next step in order to get something done.  I think I'm struggling for feeling out of control over the entire project.  I'm used to being responsible for anything that is happending on a project, and ultimately responsible for what anyone else does.   Harder to do when schedules are different, and people's working styles are different.  
