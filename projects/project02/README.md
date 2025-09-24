@@ -11,8 +11,6 @@ The goal of this project is to implement Markov model technology in stages, firs
 The markov model itself is created as a dictionary of dictionaries, and was modified from inital form to have the probability of particular text following a string of text, which is what allows us to create text from our markov_model.  In addition to the probabilities, we are using np.random.choice to select (if there are options) the next section of text for our book.
 
 # Pseudocode
-Put pseudocode in this box:
-
 ```
 build_markov_model(markov_model, string, order=n):
     """Build or add to a Nth order Markov model given a string of text"""
@@ -61,7 +59,7 @@ generate_random_text(markov_model):
 ```
 
 # Code
-Please see the file project02.Rmd in this directory.
+Please see `project02.Rmd` in this directory.
 
 # Successes
 
