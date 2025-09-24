@@ -33,6 +33,9 @@ Put pseudocode in this box:
 Some pseudocode here
 ```
 
+# Code
+Please see the file project02.Rmd in this directory.
+
 # Successes
 Description of the team's learning points
 
@@ -42,6 +45,7 @@ Description of the team's learning points
 * Struggles with Explorer/OnDemand/RStudio; uncertain if disk is filling up or there is a protection problem, or a system 
 * Read file code never returns a null line for the file one_fish_two_fish.txt.  When using the code that was given to us for reading sonnets.txt ; I was having problems because the markov model was never being built, turns out that was because line never returned "" from the file.  I do not know why this is, but it is repeatable.  Changed code to instead end the loop when the open/read file loop as my prior group did for project01, this seems to work.
 * Comfort with git is definately improving but getting a smooth workflow going continues to be a challenge.
+* GRRRR ondemand and RStudio issues/Explorer issues.
 
 # Personal Reflections
 ## Group Leader
@@ -50,7 +54,11 @@ Group leader's reflection on the project
 ## Other member (Jacque)
 This project was more straightforward than it first appeared.  Given what I was understanding at class, I thought we would have to be implementing something with multi-dimentional matrices (N level would be an N level matrix).  Coding became much easier once I figured out that was not the case. 
 
-I did not always feel that I knew what my next step to do in this project might be. I found myself often waiting for the next step in order to get something done.  In the future, perhaps asking to break down the project into smaller pieces?  I'm not sure.  Working on projects like this in my prior experience is difficult, because it's so much easier to break them into peices on the function line, rather than both implementing a funtion 'together'.
+I did not always feel that I knew what my next step to do in this project might be. I found myself often waiting for the next step in order to get something done.  I think I'm struggling for feeling out of control over the entire project.  I'm used to being responsible for anything that is happending on a project, and ultimately responsible for what anyone else does.   Harder to do when schedules are different, and people's working styles are different.  
+
+Debugging is a pain when your system won't stay up.
+
+Rstudio does not give helpful syntax errors as it's row counters are completely wrong, and "relative row counters" are even more wrong.  Even then the syntax errors are not even about the real problem, they are usually about another downstream text issue.  
 
 # Generative AI Appendix
 As per the syllabus
