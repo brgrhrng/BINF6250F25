@@ -13,7 +13,7 @@ The markov model itself is created as a dictionary of dictionaries, and was modi
 # Pseudocode
 Put pseudocode in this box:
 
-``` {python}
+```
 build_markov_model(markov_model, string, order=n):
     """Build or add to a Nth order Markov model given a string of text"""
     
