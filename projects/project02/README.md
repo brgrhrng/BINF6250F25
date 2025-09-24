@@ -1,19 +1,3 @@
----
-title: "Project 02"
-author: "Brooks Groharing, Jacqueline Caldwell"
-date: "`r Sys.Date()`"
-output:
-    github_document:
-        toc: true
-        toc_depth: 2
-        html_preview: false
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-library('reticulate')
-```
-
 # Introduction
 
 * Authors:  Brooks Groharing, Jacqueline Caldwell
