@@ -1,0 +1,129 @@
+---
+title: "Project 03"
+author: "Your Name"
+date: "`r format(Sys.time(), '%Y%m%d')`"
+output:
+  github_document:
+    html_preview: false
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE)
+library('reticulate')
+```
+
+---
+
+# Gibbs sampling
+
+---
+## Imports
+
+For this project, it tasks you with creating a sequence logo to plot the motif sequences identified through your algorithm.
+This is a very minor portion of the project and is best used for checking your work. That means that if you cannot get the library
+that you are about to install to work, don't worry. At a bare minimum, you only need `numpy` to complete this project.
+
+```{r, install_seqlogo}
+reticulate::conda_install(packages=c('pdf2svg',"seqlogo"), forge=TRUE, channel="bioconda",conda="auto", additional_install_args="--solver=libmamba")
+```
+
+
+```{python}
+import numpy as np
+import seqlogo
+
+#import function for building sequence motif & idenfitying seqs matching to motif
+from data_readers import *
+from seq_ops import get_seq
+from motif_ops import *
+```
+
+---
+## Implement Gibbs Sampler
+
+
+Gibbs sampling is a MCMC approach to identify enrichments. Here we will implement a method to identify motifs from a set of regions. 
+
+Important considerations:
+- We will need to score each sequence with a PWM using the `score_kmer()` or `score_sequence()` functions
+    - You will need to investigate into the help documenation and libraries to identify how best to use these functions. 
+- These sites are often not strand-specific and so both scores on the negative as well as positive strand should be considered
+- To select a random sequence, use `random.randint()` or `numpy.random.randint()`
+- To select a new position $m$ (as defined below) use `random.choices()` or `numpy.random.choice()`  
+
+Assumptions: 
+- We know $k$ as the length of expected motif
+- Each sequence contains the motif
+
+
+```
+GibbsMotifFinder(DNA, k-length)
+    random pick of k-length sequences from each line of DNA as Motifs
+    for j ← 1 to 10000 or Motifs stops changing
+        i ← Random(N) where N is number of DNA entries
+        PWM ← PWM constructed from all Motifs except for Motifi
+        Motifi ← select position m from PWM-scored k-mers in DNAi in probabilistic fashion from score distribution
+    return PFM
+```
+
+Probability of chosing position $m = \frac{A_{m}}{\sum_{l}A_{l}}$ for positions $l$ in DNAi
+
+
+**Note:** I have also added a function to `motif_ops.py` that will calculate the information content of your motifs. This is useful to observe the progression of your Gibbs sampler as well as a measure of convergence. You can use this function as `IC = pfm_ic(pfm)`. You should expect a slow increase of IC until it plateaus such as in the plot below from your lecture slides:
+
+![]('figures/Gibbs_Sampling.png')
+
+
+```{python}
+def GibbsMotifFinder (seqs, k, seed=42):
+    '''
+    Function to find a pfm from a list of strings using a Gibbs sampler
+    
+    Args: 
+        seqs (str list): a list of sequences, not necessarily in same lengths
+        k (int): the length of motif to find
+        seed (int, default=42): seed for np.random
+
+    Returns:
+        pfm (numpy array): dimensions are 4xlength
+        
+    '''
+    pass
+```
+
+
+```{python}
+# Here we test your Gibbs sampler.
+# You do not need to edit this or the section below. This is the Driver program
+
+#read promoters, store in a list of strings
+seq_file="data/GCF_000009045.1_ASM904v1_genomic.fna.gz"
+gff_file="data/GCF_000009045.1_ASM904v1_genomic.gff.gz"
+
+seqs = []
+
+for name, seq in get_fasta(seq_file): # For each entry in our FASTA file
+    for gff_entry in get_gff(gff_file): # For each entry in our GFF file
+        if gff_entry.type == 'CDS': # If this is a coding sequence
+            promoter_seq = get_seq(seq, gff_entry.start, gff_entry.end, gff_entry.strand, 50) # Extract 50 bp as a promoter
+    
+            """
+            Because the gibbs sampling assumption is broken in just using promoters,
+            and because it takes very long time to randomly progress through so many
+            regions, for this example we will pre-filter for sequences that all contain
+            part of the shine-dalgarno motif:
+            """
+            if "AGGAGG" in promoter_seq:
+                seqs.append(promoter_seq)
+```
+
+
+```{python}
+# Run the gibbs sampler:
+promoter_pfm = GibbsMotifFinder(seqs,10)
+
+# Plot the final pfm that is generated: 
+seqlogo.seqlogo(seqlogo.CompletePm(pfm = promoter_pfm.T))
+```
