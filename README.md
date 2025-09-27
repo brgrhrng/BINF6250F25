@@ -7,7 +7,6 @@ Description of the project
 Put pseudocode in this box:
 
 ```
-
 1. import sequences from file
 
 2. for each sequence, pick a random start index
@@ -24,8 +23,8 @@ GibbsMotifFinder(sequences, k-length)
     
     for 10000 iterations, or until information content plateaus:
       randomly select a sequence from sequences
-      construct PWM from the k_mer associated with every other sequence
-      scores = [score each k_mer using PWM]
+      construct PWM from the k_mer associated with every other sequence # Chris
+      scores = [score each k_mer using PWM] # BAG
       select random k_mer weighted by scores
       
       check if new IC approx equals last ic # info plateau
