@@ -102,48 +102,49 @@ def GibbsMotifFinder (seqs, k, seed=42):
     motifs = []
     motifs_i = []
     for seq in seqs:
-      i = random.randint(0,len(seq)-k)
-      motifs_i.append(i)
-      motifs.append(seq[i:i+k])
+        i = random.randint(0,len(seq)-k)
+        motifs_i.append(i)
+        motifs.append(seq[i:i+k])
     
     
-    print(motifs)
-    print(motifs_i)
+    #print(motifs)
+    #print(motifs_i)
     
     # Main loop
     for iterations in range(0,10):
-      # Randomly select a sequence
-      seq_i = random.randint(0,len(seqs)-1)
-      seq = seqs[seq_i]
+        # Randomly select a sequence
+        seq_i = random.randint(0,len(seqs)-1)
+        seq = seqs[seq_i]
       
-      print(f"randomly selected index: {seq_i}")
-      
-      # Recalculate PWM using the motifs of all other sequences
-      other_motifs = motifs[:seq_i] + motifs[seq_i+1:]
-      freq_matrix = build_pfm(other_motifs, k)
-      weight_matrix = build_pwm(freq_matrix)
+        print(f"randomly selected index: {seq_i}")
+        
+        # Recalculate PWM using the motifs of all other sequences
+        other_motifs = motifs[:seq_i] + motifs[seq_i+1:]
+        freq_matrix = build_pfm(other_motifs, k)
+        weight_matrix = build_pwm(freq_matrix)
       
       # Score each k-length sub-string of our chosen sequence with our PWM
-      scores = score_substrings(seq, k, weight_matrix)
+        scores = score_substrings(seq, k, weight_matrix)
+        score_max = max(scores)
+        score_min = min(scores)
+        relative_scores = []
+        
+        for score in scores:
+            relative_scores.append((score - score_min)/(score_max - score_min))
+        print(relative_scores)
      
       # Update the chosen sequence's motif index probabilistically
       
       # new_motif_i = scores.index(max(scores)) # TODO: weighted random instead of max
-      
-      
-      random_weights = [2 ** score for score in scores] # reverse log_2
+      #random_weights = [2 ** score for score in scores] # reverse log_2
       #print(random_weights)
       
-      new_motif_i = random.choices(range(0,len(scores)), random_weights, k=1)[0]
+        new_motif_i = random.choices(range(0,len(seq)-k+1), relative_scores, k=1)
+        print(new_motif_i)
       
-      
-      motifs_i[seq_i] = new_motif_i 
-      motifs[seq_i] = seq[new_motif_i:new_motif_i+k]
-      
-      print(scores)
-      denom = sum(scores)
-      print([(score/denom) for score in scores])
-      print("-------------------------\n\n")
+        #motifs_i[seq_i] = new_motif_i=
+        
+        #motifs[seq_i] = seq[new_motif_i:new_motif_i+k]
       
       
       #print(motifs_i)
