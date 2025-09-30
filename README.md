@@ -7,28 +7,33 @@ Description of the project
 Put pseudocode in this box:
 
 ```
-1. import sequences from file
-
-2. for each sequence, pick a random start index
-
-3.
-
-GibbsMotifFinder(sequences, k-length)
-    # create a list of possible motifs from each sequence
+# Function to identify a motif with length k, using Gibbs sampling,
+#     from a list of DNA sequences.
+GibbsMotifFinder(sequences, length k)
+    motif_positions = empty list
     k_mers = empty list
-    
-    for seq in sequences
-      get random index
-      add seq[random_i:random_i+k] to k_mers
-    
+    for seq in sequences:
+        add random start position to motif_positions
+        add seq[start:start+k] to k_mers
+
     for 10000 iterations, or until information content plateaus:
-      randomly select a sequence from sequences
-      construct PWM from the k_mer associated with every other sequence # Chris
-      scores = [score each k_mer using PWM] # BAG
-      select random k_mer weighted by scores
-      
-      check if new IC approx equals last ic # info plateau
-    
+        randomly select a seq from sequences
+        construct PWM from the k_mer for every other sequence 
+        score all k-length substrings of seq against PWM
+        use PWM weights to randomly select a substring
+        update motif position, k_mer for seq to new substring
+
+# Driver code
+import sequences from data/seq_file
+import gff-annotations from data/gff_file
+promoters = new list
+for each seq:
+    extract coding sequences encoded in gff-annotations
+    save first 50 bp from each coding sequence to promoters
+generate a motif using GibbsMotifFinder(promoters, k=10)
+generate sequence logo from motif
+
+
     
     
 ```
