@@ -1,4 +1,5 @@
-# BINF6250F25
+# Project 03: Gibbs Sampling
+Brooks Groharing and Chris Fitzgerald
 
 # Introduction
 Description of the project
