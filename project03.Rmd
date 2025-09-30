@@ -28,7 +28,13 @@ This is a very minor portion of the project and is best used for checking your w
 that you are about to install to work, don't worry. At a bare minimum, you only need `numpy` to complete this project.
 
 ```{r, install_seqlogo}
-reticulate::conda_install(packages=c('pdf2svg',"seqlogo"), forge=TRUE, channel="bioconda",conda="auto", additional_install_args="--solver=libmamba")
+reticulate::conda_install(
+  envname = "r-reticulate", 
+  packages=c("seqlogo", "pdf2svg", "setuptools"),
+  channel=c("bioconda", "conda-forge"), 
+  conda="auto", 
+  additionall_install_args="--solver=libmamba"
+)
 ```
 
 
@@ -80,7 +86,7 @@ Probability of chosing position $m = \frac{A_{m}}{\sum_{l}A_{l}}$ for positions 
 
 
 ```{python}
-def GibbsMotifFinder (seqs, k, seed=42):
+def GibbsMotifFinder(seqs, k, seed=None):
     '''
     Function to find a pfm from a list of strings using a Gibbs sampler
     
@@ -101,6 +107,8 @@ def GibbsMotifFinder (seqs, k, seed=42):
     # Save the motifs and their indices to separate lists
     motifs = []
     motifs_i = []
+    previous_IC = 0.0
+    
     for seq in seqs:
         i = random.randint(0,len(seq)-k)
         motifs_i.append(i)
@@ -111,84 +119,45 @@ def GibbsMotifFinder (seqs, k, seed=42):
     #print(motifs_i)
     
     # Main loop
-    for iterations in range(0,10):
+    for iterations in range(0,1000):
         # Randomly select a sequence
         seq_i = random.randint(0,len(seqs)-1)
         seq = seqs[seq_i]
-      
-        print(f"randomly selected index: {seq_i}")
-        
         # Recalculate PWM using the motifs of all other sequences
         other_motifs = motifs[:seq_i] + motifs[seq_i+1:]
         freq_matrix = build_pfm(other_motifs, k)
         weight_matrix = build_pwm(freq_matrix)
-      
-      # Score each k-length sub-string of our chosen sequence with our PWM
+        # Score each k-length sub-string of our chosen sequence with our PWM
         scores = score_substrings(seq, k, weight_matrix)
-        score_max = max(scores)
-        score_min = min(scores)
-        relative_scores = []
-        
-        for score in scores:
-            relative_scores.append((score - score_min)/(score_max - score_min))
-        print(relative_scores)
-     
-      # Update the chosen sequence's motif index probabilistically
-      
-      # new_motif_i = scores.index(max(scores)) # TODO: weighted random instead of max
-      #random_weights = [2 ** score for score in scores] # reverse log_2
-      #print(random_weights)
-      
-        new_motif_i = random.choices(range(0,len(seq)-k+1), relative_scores, k=1)
+        # Update the chosen sequence's motif index probabilistically
+        new_motif_i = random.choices(range(0,len(seq)-k+1), scores, k=1)
         print(new_motif_i)
-      
-        #motifs_i[seq_i] = new_motif_i=
-        
-        #motifs[seq_i] = seq[new_motif_i:new_motif_i+k]
-      
-      
-      #print(motifs_i)
-      #print("-------")
-      #print(scores)
-      #print("PROBABILITIES:")
-      #print([round(random_weight/sum(random_weights),4)*100 for random_weight in random_weights])
-      
-      
-      
 
+        info_content = pfm_ic(freq_matrix)
+        print(info_content)
+        print(iterations)
+        if abs(info_content - previous_IC) <= 0.000001:
+            break
+        
+        previous_IC = info_content
+
+    return freq_matrix
 
 
 def score_substrings(seq, k, pwm):
-      scores = []
-      for i in range(0,len(seq)-k+1):
+    scores = []
+    relative_scores = []
+    
+    for i in range(0,len(seq)-k+1):
         scores.append(score_kmer(seq[i:i+k],pwm))
-        print(seq[i:i+k]) # debugging
         
-      return scores
+    score_max = max(scores)
+    score_min = min(scores)
 
-#["ACGTACGTACGT","CGTACGTACGTA","ACGTACGTACGT","ACGTACGTACGT"],7
-seqs = ["AGAACACGACAAGGAAAGGTAT",
-"ATCTGAAGGGGGATTCTGGAGA",
-"GTGAAAAATTGGAGGGAAACTC",
-"CAATTAGAGAGGAGAATTCGAT",
-"AAAGCGAAGGACTCGGCGAGTA",
-"ACATACCCTGCAAGGATGATTA",
-"AAAAGGAAGGGAGGTCTATCTC",
-"TTAAATATGGTGGTGGAAACAG",
-"TTTCGAAAGGATTGTTTATAAA",
-"TAAATAGAAGGAGGCGCACAAA",
-"ACCGTTATCGAGGGATACATAA",
-"TAACTGAATTTAAAGGAGGTTC",
-"CGTTTAAAATGCATAATAAGGA",
-"TGGAAAACAGGGAGAGATCATA",
-"TGCAAACTAACGGGGGGATAAT",
-"AAAAGAAAAAGGAGATGGGAGT"
-]
-
-GibbsMotifFinder(seqs, 6) # A C G T
-
-
-
+    for score in scores:
+        relative_scores.append((score - score_min)/(score_max - score_min))
+        
+    return relative_scores
 
 ```
 
@@ -198,8 +167,8 @@ GibbsMotifFinder(seqs, 6) # A C G T
 # You do not need to edit this or the section below. This is the Driver program
 
 #read promoters, store in a list of strings
-seq_file="data/GCF_000009045.1_ASM904v1_genomic.fna.gz"
-gff_file="data/GCF_000009045.1_ASM904v1_genomic.gff.gz"
+seq_file="data/GCF_000009045.1_ASM904v1_genomic.fna"
+gff_file="data/GCF_000009045.1_ASM904v1_genomic.gff"
 
 seqs = []
 
@@ -207,13 +176,6 @@ for name, seq in get_fasta(seq_file): # For each entry in our FASTA file
     for gff_entry in get_gff(gff_file): # For each entry in our GFF file
         if gff_entry.type == 'CDS': # If this is a coding sequence
             promoter_seq = get_seq(seq, gff_entry.start, gff_entry.end, gff_entry.strand, 50) # Extract 50 bp as a promoter
-    
-            """
-            Because the gibbs sampling assumption is broken in just using promoters,
-            and because it takes very long time to randomly progress through so many
-            regions, for this example we will pre-filter for sequences that all contain
-            part of the shine-dalgarno motif:
-            """
             if "AGGAGG" in promoter_seq:
                 seqs.append(promoter_seq)
 ```
@@ -222,7 +184,8 @@ for name, seq in get_fasta(seq_file): # For each entry in our FASTA file
 ```{python}
 # Run the gibbs sampler:
 promoter_pfm = GibbsMotifFinder(seqs,10)
+print(promoter_pfm)
 
 # Plot the final pfm that is generated: 
-seqlogo.seqlogo(seqlogo.CompletePm(pfm = promoter_pfm.T))
+#seqlogo.seqlogo(seqlogo.CompletePm(pfm = promoter_pfm.T))
 ```
