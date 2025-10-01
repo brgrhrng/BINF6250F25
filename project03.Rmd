@@ -102,40 +102,38 @@ def GibbsMotifFinder(seqs, k, seed=None):
     # Initialize RNG
     random.seed(seed)
     
-    # For each sequence, initialize the best motif
+    # For each sequence, initialize the motif
     #   as a random substring of length k
-    # Save the motifs and their indices to separate lists
-    motifs = []
-    motifs_i = []
-    previous_IC = 0.0
-    
+    motifs_i = [] # start positions
+    motifs = [] # motif sequences
     for seq in seqs:
         i = random.randint(0,len(seq)-k)
         motifs_i.append(i)
         motifs.append(seq[i:i+k])
     
-    
-    #print(motifs)
-    #print(motifs_i)
+    # Each loop, we will compare the new PFM's
+    # info content to see if it's still changing
+    previous_IC = 0.0
     
     # Main loop
     for iterations in range(0,1000):
-        # Randomly select a sequence
+        # Randomly select a sequence to update
         seq_i = random.randint(0,len(seqs)-1)
         seq = seqs[seq_i]
+        
         # Recalculate PWM using the motifs of all other sequences
         other_motifs = motifs[:seq_i] + motifs[seq_i+1:]
         freq_matrix = build_pfm(other_motifs, k)
         weight_matrix = build_pwm(freq_matrix)
-        # Score each k-length sub-string of our chosen sequence with our PWM
+        
+        # Score each k-length sub-string of chosen sequence with PWM
         scores = score_substrings(seq, k, weight_matrix)
+        
         # Update the chosen sequence's motif index probabilistically
         new_motif_i = random.choices(range(0,len(seq)-k+1), scores, k=1)
-        print(new_motif_i)
-
+        
+        # Check if the PFM's info content has plateaud
         info_content = pfm_ic(freq_matrix)
-        print(info_content)
-        print(iterations)
         if abs(info_content - previous_IC) <= 0.000001:
             break
         
@@ -145,18 +143,23 @@ def GibbsMotifFinder(seqs, k, seed=None):
 
 
 def score_substrings(seq, k, pwm):
+  """
+  Function to score all k-length substring of seq using pwm.
+  Normalizes all scores to the (0,1) range, and returns in a list.
+  """
     scores = []
     relative_scores = []
     
+    # Extract each k-mer and score it
     for i in range(0,len(seq)-k+1):
         scores.append(score_kmer(seq[i:i+k],pwm))
-        
+    
+    # Normalize scores to range 0,1
     score_max = max(scores)
     score_min = min(scores)
-
     for score in scores:
         relative_scores.append((score - score_min)/(score_max - score_min))
-        
+    
     return relative_scores
 
 ```
