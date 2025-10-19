@@ -31,6 +31,7 @@ You will need to install a package called `ete3` for this project. You can do th
 from typing import List, Tuple, Dict
 import numpy as np
 import ete3
+import textdistance as td
 ```
 
 ---
@@ -110,7 +111,61 @@ def read_fasta(filename: str) -> Dict[str, str]:
         >>> len(seqs) > 0
         True
     """
+    
+    establish empty dictionary for aa entries
+    read line by line in for loop
+    recognize new entry by ">" character 
+    accession ID is in between "|" characters after "gi"
+    isolate aa sequence by index of end of ID to new-line character?
+    make ID: aa sequence as key-value pair
+    
+    
     pass
+```
+
+```{python}
+def cal_score(matrix, seq1, seq2, i, j, match, mismatch, gap):
+    '''Calculate score for position (i,j) in scoring matrix, also record move to trace back
+    
+    Args:
+        matrix (numpy array): scoring matrix
+        seq1 (str): sequence 1
+        seq2 (str): sequence 2
+        i (int): current row number
+        j (int): current column number
+        
+    Returns:
+        score in position (i,j)    
+        move to trace back: 0-END, 1-DIAG, 2-UP, 3-LEFT
+        
+    Pseudocode:
+        Calculate scores based on upper-left, up, and left neighbors:
+            diag_score = upper-left + (match or mismatch)
+            up_score = up + gap
+            left_score = left + gap
+        score = max(0, diag_score, up_score, left_score)
+        traceback = maximum direction or end
+        
+    '''
+    # Determine scores at prev positions
+    diag_node = matrix[i-1, j-1]
+    up_node = matrix[i-1, j]
+    left_node = matrix[i, j-1]
+    
+    # calculate diag_score by comparing respective nucleotides
+    # Needs - 1 because we start i and j at 1
+    if seq1[i-1] == seq2[j-1]:
+      diag_score = diag_node + match
+    else:
+      diag_score = diag_node + mismatch
+      
+    up_score = up_node + gap
+    left_score = left_node + gap
+    
+    score = max(0, diag_score, up_score, left_score)
+
+    return score 
+    
 ```
 
 ```{python}
@@ -139,8 +194,30 @@ def smith_waterman(
         >>> smith_waterman(seq1, seq2)
         1.0
     """
-    pass
+    
+    #implement smith-waterman algorithm from last project, will need cal_score
+    #unsure whether score is the max or if we need to do some more math since it asks for "normalized similarity score"
+    
+    m = len(sequence1) + 1  # number of rows
+    n = len(sequence2) + 1  # number of columns
+    score_matrix = np.zeros((m, n))
+
+    for i in range(1, m):
+      for j in range(1, n):
+        score_matrix[i, j] = cal_score(score_matrix, sequence1, sequence2, i, j, match_score, mismatch_penalty, gap_penalty)
+        
+    score = np.max(score_matrix)/match_score
+
+    return score
 ```
+
+```{python}
+print(smith_waterman("asj", "asd"))
+
+
+```
+
+
 
 ```{python}
 def build_distance_matrix(sequences: Dict[str, str]) -> Tuple[np.ndarray, List[str]]:
@@ -162,7 +239,31 @@ def build_distance_matrix(sequences: Dict[str, str]) -> Tuple[np.ndarray, List[s
         >>> len(ids)  # Number of sequences
         19
     """
-    pass
+    
+    # establish list for sequence IDs by using .keys() and converting that to list
+    seq_ids = list(sequences.keys())
+    print()
+    # establish empty matrix of len(sequences.keys()) x len(sequences.keys())
+    n = len(seq_ids)
+    dist_mat = np.empty(shape=(n,n), dtype = float)
+
+    # loop through each sequence ID, filling out the matrix at i,j and j,i because they will be the same score
+    for i, acc1 in enumerate(seq_ids):
+      for j, acc2 in enumerate(seq_ids):
+        # Hamming?
+        total_len = max((len(sequences[acc1]), len(sequences[acc2])))
+        dist_mat[i,j] =  total_len - td.smith_waterman(sequences[acc1], sequences[acc2]) 
+        dist_mat[j,i] = dist_mat[i,j]
+        if i == j:
+          break
+    return (dist_mat, seq_ids)
+```
+
+```{python}
+sequences = {"1234": "ASDF", "2345": "ASDG", "3456": "ADDF", "4567": "AAAA"}
+dis_mat, seq_ids = build_distance_matrix(sequences)
+print(dis_mat)
+print(seq_ids)
 ```
 
 ```{python}
@@ -178,7 +279,12 @@ def get_min_distance(matrix):
         pos (tuple): The x and y position of the smallest distance
     
     '''
-    pass
+    
+    minimum = np.min(matrix)
+    min_pos = np.unravel_index(np.argmin(matrix), matrix.shape)
+    print(min_pos)
+    return minimum, min_pos
+    
 ```
 
 ```{python}
@@ -204,8 +310,46 @@ def neighbor_joining(
         >>> tree.count(",")  # Number of separators in tree
         18
     """
-    pass
+    
+    #from distance matrix, calculate total distances of each sequence
+    total_distance = distance_matrix.sum(axis = 0)
+    print(total_distance)
+    
+    #make Q matrix based off of neighbor joining equation D*ij = (n-2) * Dij - TotalDistance(i) - TotalDistance(j)
+    n = len(labels)
+    q_matrix = np.empty(shape=(n,n), dtype = float)
+    for i, row in enumerate(distance_matrix):
+      for j, value in enumerate(row):
+        q_matrix[i,j] = (n - 2) * value - total_distance[i] - total_distance[j]
+        q_matrix[j,i] = q_matrix[i,j]
+        if i == j:
+          break
+    print(distance_matrix)
+    print(q_matrix)
+    #find min value and find out which two sequences share it (i.e. both [i,j] and [j,i] contain the min)
+    min_val, min_pos = get_min_distance(q_matrix)
+    
+    #find difference of i and j with equation deltaij = (TotalDistance(i) - TotalDistance(j))/(n-2)
+    i = min_pos[0]
+    j = min_pos[1]
+    
+    total_disti = total_distance[i]
+    total_distj = total_distance[j]
+    delta = (total_disti - total_distj) / (n-2)
+    
+    limb_lengthi = (distance_matrix[i] + delta) / 2
+    limb_lengthj = (distance_matrix[j] - delta) / 2
+    
+    
 ```
+
+
+```{python}
+sequences = {"1234": "ASDF", "2345": "ASDG", "3456": "ADDF", "4567": "AAAA"}
+dis_mat, seq_ids = build_distance_matrix(sequences)
+tree = neighbor_joining(dis_mat, seq_ids)
+```
+
 
 ```{python}
 def plot_tree(newick_tree: str) -> None:
@@ -224,7 +368,8 @@ def plot_tree(newick_tree: str) -> None:
 ```{python}
 if __name__ == "__main__":
     # Read HIV RT sequences
-    sequences = read_fasta("lafayette_SARS_RT.fasta")
+    sequences = {"1234": "ASDLKJFLS", "2345": "SLDFKJIED", "3456": "IKEPCLDGT", "4567": "PEOFKLCJU"}
+    #read_fasta("lafayette_SARS_RT.fasta")
     
     # Build distance matrix using Smith-Waterman
     dist_matrix, seq_ids = build_distance_matrix(sequences)
