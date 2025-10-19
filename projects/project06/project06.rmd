@@ -97,7 +97,23 @@ This was previously implemented. Feel free to import if you know how...or Copy &
 
 
 ```{python}
-def read_fasta(filename: str) -> Dict[str, str]:
+def extract_acc_id(header):
+  """ Extracts an ID from a header string formatted as follows:
+    
+    >gi|24209956|gb|AAN41470.1| reverse transcriptase, partial [HIV 1]
+    
+    id: 24209956
+  """
+  header = header.strip().strip(">")
+  fields = header.split("|")
+  
+  # We assume the id is the pipe-separated field following gi
+  id_i = fields.index("gi") + 1
+  
+  return fields[id_i]
+
+
+def read_fasta(filename: str): # -> Dict[str, str]:
     """Reads sequences from FASTA file.
 
     Args:
@@ -112,16 +128,41 @@ def read_fasta(filename: str) -> Dict[str, str]:
         True
     """
     
-    establish empty dictionary for aa entries
-    read line by line in for loop
-    recognize new entry by ">" character 
-    accession ID is in between "|" characters after "gi"
-    isolate aa sequence by index of end of ID to new-line character?
-    make ID: aa sequence as key-value pair
+    seq_dict = {}
     
+    seq_id = None
+    seq = ""
     
-    pass
+    with open(filename) as file:
+      for line in file:
+        line = line.strip()
+        if line[0] == ">": # Header line
+          # Save previous sequence to dict
+          if seq_id:
+            seq_dict[seq_id] = seq
+          
+          # Update current id and start building a new sequence
+          seq_id = extract_acc_id(line)
+          seq = ""
+        else: # Data line
+          seq += line
+          
+      # Save the final sequence in file to dict
+      seq_dict[seq_id] = seq
+      
+      return seq_dict
 ```
+
+
+```{python}
+
+seqs = read_fasta("lafayette_SARS_RT.fasta")
+print(seqs)
+
+```
+
+
+
 
 ```{python}
 def cal_score(matrix, seq1, seq2, i, j, match, mismatch, gap):
