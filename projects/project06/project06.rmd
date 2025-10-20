@@ -30,7 +30,7 @@ You will need to install a package called `ete3` for this project. You can do th
 ```{python}
 from typing import List, Tuple, Dict
 import numpy as np
-import ete3
+# import ete3
 import textdistance as td
 ```
 
@@ -283,6 +283,7 @@ def build_distance_matrix(sequences: Dict[str, str]) -> Tuple[np.ndarray, List[s
     
     # establish list for sequence IDs by using .keys() and converting that to list
     seq_ids = list(sequences.keys())
+    
     print()
     # establish empty matrix of len(sequences.keys()) x len(sequences.keys())
     n = len(seq_ids)
