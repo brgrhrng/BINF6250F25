@@ -177,104 +177,6 @@ print(seqs)
 ```
 
 
-
-
-```{python}
-def cal_score(matrix, seq1, seq2, i, j, match, mismatch, gap):
-    '''Calculate score for position (i,j) in scoring matrix, also record move to trace back
-    
-    Args:
-        matrix (numpy array): scoring matrix
-        seq1 (str): sequence 1
-        seq2 (str): sequence 2
-        i (int): current row number
-        j (int): current column number
-        
-    Returns:
-        score in position (i,j)    
-        move to trace back: 0-END, 1-DIAG, 2-UP, 3-LEFT
-        
-    Pseudocode:
-        Calculate scores based on upper-left, up, and left neighbors:
-            diag_score = upper-left + (match or mismatch)
-            up_score = up + gap
-            left_score = left + gap
-        score = max(0, diag_score, up_score, left_score)
-        traceback = maximum direction or end
-        
-    '''
-    # Determine scores at prev positions
-    diag_node = matrix[i-1, j-1]
-    up_node = matrix[i-1, j]
-    left_node = matrix[i, j-1]
-    
-    # calculate diag_score by comparing respective nucleotides
-    # Needs - 1 because we start i and j at 1
-    if seq1[i-1] == seq2[j-1]:
-      diag_score = diag_node + match
-    else:
-      diag_score = diag_node + mismatch
-      
-    up_score = up_node + gap
-    left_score = left_node + gap
-    
-    score = max(0, diag_score, up_score, left_score)
-
-    return score 
-    
-```
-
-```{python}
-def smith_waterman(
-    sequence1: str,
-    sequence2: str,
-    match_score: float = 2.0,
-    mismatch_penalty: float = -1.0,
-    gap_penalty: float = -1.0
-) -> float:
-    """Implements Smith-Waterman local alignment algorithm.
-
-    Args:
-        sequence1 (str): First HIV RT sequence
-        sequence2 (str): Second HIV RT sequence
-        match_score (float): Score for matching characters
-        mismatch_penalty (float): Penalty for mismatched characters
-        gap_penalty (float): Penalty for gaps
-
-    Returns:
-        float: Normalized similarity score between sequences
-
-    Examples:
-        >>> seq1 = "ACGT"
-        >>> seq2 = "ACGT"
-        >>> smith_waterman(seq1, seq2)
-        1.0
-    """
-    
-    #implement smith-waterman algorithm from last project, will need cal_score
-    #unsure whether score is the max or if we need to do some more math since it asks for "normalized similarity score"
-    
-    m = len(sequence1) + 1  # number of rows
-    n = len(sequence2) + 1  # number of columns
-    score_matrix = np.zeros((m, n))
-
-    for i in range(1, m):
-      for j in range(1, n):
-        score_matrix[i, j] = cal_score(score_matrix, sequence1, sequence2, i, j, match_score, mismatch_penalty, gap_penalty)
-        
-    score = np.max(score_matrix)/match_score
-
-    return score
-```
-
-```{python}
-print(smith_waterman("asj", "asd"))
-
-
-```
-
-
-
 ```{python}
 def build_distance_matrix(sequences: Dict[str, str]) -> Tuple[np.ndarray, List[str]]:
     """Builds distance matrix using Smith-Waterman scores.
@@ -339,7 +241,6 @@ def get_min_distance(matrix):
     
     minimum = np.min(matrix)
     min_pos = np.unravel_index(np.argmin(matrix), matrix.shape)
-    print(min_pos)
     return minimum, min_pos
     
 ```
@@ -377,119 +278,103 @@ def neighbor_joining(
     # IF distance_matrix is 2x2, return the final tree
     if n==2:
       length_from_root = distance_matrix[0,1]
-      return f"({newick_str}:{length_from_root},{labels[0]}:{length_from_root})"
+      return f"({newick_str}:{length_from_root},{labels[1]}:{length_from_root})"
     
-    # Step 1: From distance matrix, calculate total distances of each sequence
-    total_distance = distance_matrix.sum(axis = 0)
-    total_distance = [val/(n-2) for val in total_distance]
+    # From distance matrix, calculate the distance of each sequence to all other sequences.
+    total_distances = distance_matrix.sum(axis = 0)
+    # We divide by n-2 to simplify the limb length calculation later down the line.
+    total_distances = [val/(n-2) for val in total_distances]
     
     print("-------------------------------------")
     print("DISTANCE MATRIX:\n", distance_matrix)
-    print("DISTANCE TOTALS:\n", total_distance)
+    print("DISTANCE TOTALS:\n", total_distances)
     
-    # Step 2: Create Q matrix (D prime). For non-symmetric comparisons:
-    #    D*ij = Dij - TotalDistance(i) - TotalDistance(j)
-    #   Symmetric comparisons are always 0.
+    # Create Q-matrix, or "net divergence" matrix
     q_matrix = np.empty(shape=(n,n), dtype = float)
-    for i, row in enumerate(distance_matrix):
-      for j, distance in enumerate(row):
-        if i == j:
-          q_matrix[i,j] = 0
+    for row_index, row in enumerate(distance_matrix):
+      for col_index, dist_val in enumerate(row):
+        if row_index == col_index:
+          q_matrix[row_index,col_index] = 0
           break
         else:
-          q_matrix[i,j] = distance - total_distance[i] - total_distance[j]
-          q_matrix[j,i] = q_matrix[i,j] # mirror values across diagonal
+          q_matrix[row_index,col_index] = dist_val - total_distances[row_index] - total_distances[col_index]
+          q_matrix[col_index,row_index] = q_matrix[row_index,col_index] # mirror values across diagonal
         
     print("Q MATRIX:\n", q_matrix)
     
-    # Step 3: Join two nodes and calculate branch lengths
-    
-    # Find a minimum value in D', and the two sequences share it 
-    #   i.e. both [i,j] and [j,i] contain the min
+    # Find the lowest net divergence value and get the two taxa it corresponds to.
     min_val, min_pos = get_min_distance(q_matrix)
     
-    if n == 4:
-      min_pos = (3,2)
+    # Testing different merge scenario:
+    #if n == 4:
+      #min_pos = (3,2)
+    #print(min_pos)
     
-    print(min_pos)
+    # The position of the minimum value represents a new node (common ancestor) between the two taxa.
+    taxa1, taxa2 = min_pos
     
-    #find difference of i and j with equation deltaij = (TotalDistance(i) - TotalDistance(j))/(n-2)
+    # Get the divergence value for each taxa.
+    total_dist1 = total_distances[taxa1]
+    total_dist2 = total_distances[taxa2]
     
-    i,j = min_pos
-    total_disti = total_distance[i]
-    total_distj = total_distance[j]
+    # Calculate limb lengths of each taxa to the new node, adjusted by the difference between the two divergences.
+    limb_length1 = (distance_matrix[taxa1,taxa2] + total_dist1 - total_dist2) / 2
+    limb_length2 = (distance_matrix[taxa1,taxa2] + total_dist2 - total_dist1) / 2
     
-    delta = (total_distj - total_disti)
+    #print(limb_length1,limb_length2)
     
-    # calc limb lengths
-    limb_lengthi = (distance_matrix[i,j] - delta) / 2
-    limb_lengthj = (distance_matrix[i,j] + delta) / 2
+    # Create new distance matrix with distances of remaining taxa to new node.
     
-    print(limb_lengthi,limb_lengthj)
+    id_1 = labels[taxa1]
+    id_2 = labels[taxa2]
     
-    # RECALCULATE DISTANCE MATRIX
-    
-    lbl_i = labels[i]
-    lbl_j = labels[j]
-    
-    # calc merged column
+    # Create a new merged taxa.
     merged_vals = np.empty(n)
     
     for row_i, row in enumerate(distance_matrix):
-      merged_val = (row[i] + row[j] - distance_matrix[i,j]) / 2
+      # Calculating new distances of remaining taxa to merged taxa.
+      merged_val = (row[taxa1] + row[taxa2] - distance_matrix[taxa1,taxa2]) / 2
       merged_vals[row_i] = merged_val
       
-    print("merged_vals!!!", merged_vals)
+    #print("merged_vals:", merged_vals)
     
-    # Replace species i with merged
-    distance_matrix[:, i] = merged_vals
-    distance_matrix[i] = merged_vals
+    # Replace taxa1 row and column with merged taxa.
+    distance_matrix[:, taxa1] = merged_vals
+    distance_matrix[taxa1] = merged_vals
     
-    labels[i] = f"{labels[i]},{labels[j]}" #
-    labels.pop(j)
+    labels[taxa1] = f"{id_2},{id_1}" #
+    labels.pop(taxa2)
     
-    # Remove species j
-    distance_matrix = np.delete(distance_matrix, (j), axis=0)
-    distance_matrix = np.delete(distance_matrix, (j), axis=1)
+    #print(labels)
+    
+    # Remove taxa2 row and column.
+    distance_matrix = np.delete(distance_matrix, (taxa2), axis=0)
+    distance_matrix = np.delete(distance_matrix, (taxa2), axis=1)
 
-    print(distance_matrix)
+    #print(distance_matrix)
     
-    
-    """
-    (D:10.0,C:4.0)
-    (A:13,(D:10.0,C:4.0):4)
-    ((A:13,(D:10.0,C:4.0):4),B:4) # final step
-    
-    (A:13.0,(D:10.0,C:4.0):4.0):4)
-    
-    
-    """
-    
-    if newick_str == "":
-      newick_str = f"{lbl_j}"
-    
-    newick = f"({lbl_i}:{limb_lengthi},{newick_str}:{limb_lengthj})"
+    # At very beginning of neighbor joining.
+    if not newick_str:
+      newick = f"({id_2}:{limb_length2},{id_1}:{limb_length1})"
+      #print(newick)
+      return neighbor_joining(distance_matrix, labels, newick)
+    # Neither new taxa are the merged taxa.
+    if id_1[0] not in newick_str and id_2[0] not in newick_str:
+      unused_newick = newick_str
+      new_newick = f"({id_2}:{limb_length2},{id_1}:{limb_length1})"
+      newick = f"({unused_newick},{new_newick})"
+      #print(newick)
+      return neighbor_joining(distance_matrix, labels, newick)
+    # Attach unmerged taxa to merged taxa.  
+    newick = f"({id_2}:{limb_length2},{newick_str}:{limb_length1})"
     
     #newick = f"({lbl_i}:{limb_lengthi}{newick_str},{lbl_j}:{limb_lengthj})"
     #newick = f"({lbl_i}:{limb_lengthi},{lbl_j}:{limb_lengthj})"
     
-    print(newick)
+    #print(newick)
     
     
     return neighbor_joining(distance_matrix, labels, newick)
-    
-    """
-    GOAL TO GENERATE:
-    "(A:1,(B:1,(E:1,D:1):0.5):0.5);"
-    
-    Tree("(A:1,(B:1,(E:1,D:1):0.5):0.5);")
-    
-    
-    D:10,(C:4,(A:4,B:13):4.0):10
-    
-    """
-    
-    
 ```
 
 ```{python}
