@@ -415,8 +415,7 @@ def plot_tree(newick_tree: str) -> None:
 ```{python}
 if __name__ == "__main__":
     # Read HIV RT sequences
-    sequences = {"1234": "ASDLKJFLS", "2345": "SLDFKJIED", "3456": "IKEPCLDGT", "4567": "PEOFKLCJU"}
-    #read_fasta("lafayette_SARS_RT.fasta")
+    sequences = read_fasta("lafayette_SARS_RT.fasta")
     
     # Build distance matrix using Smith-Waterman
     dist_matrix, seq_ids = build_distance_matrix(sequences)
