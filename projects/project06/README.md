@@ -5,7 +5,76 @@ Description of the project
 Put pseudocode in this box:
 
 ```
-Some pseudocode here
+build_distance_matrix(sequences):
+	""" Build a distance matrix using S-W scores, from a dictionary of named sequences """
+	initialize n x n empty matrix as distance_matrix # n is number of seqs
+	for i in seq_ids:
+		for j in seq_ids:
+			get the larger length between i and j
+			dist_matrix at i,j = max_length - smith_waterman(seq_i, seq_j)
+
+neighbor_joining(distance_matrix, newick_string = empty string):
+	Recursive function to obtain a tree in newick format given a distance matrix.
+  Each inner call carries out a single neighbor joining step, reducing the input matrix until we reach a top-level branch.
+
+	if distance_matrix is 2x2:
+		get top-level branch length from d_m
+		update newick_string with final branch
+		RETURN newick_string
+	
+	total_distances = sum of each taxon's distance in d_m	
+	
+	# Populate divergence matrix
+	q_matrix = empty matrix
+	for row in d_m:
+		for col in d_m:
+			if row == col: # self-comparisons
+				d_m at row, col = 0	
+			else:
+				d_m at row,col - t_d[row] - t_d[col]
+	
+	find a minimum value in q_matrix
+	get taxa1, taxa2 corresponding to this minimum
+
+	# Calculate new limb lengths
+	length1 = d_m at taxa1,taxa2 + t_d[taxa1] - t_d[taxa2]
+	length2 = d_m at taxa1,taxa2 + t_d[taxa2]- t_d[taxa1]
+	
+	# Merge taxa into taxa column 1
+	for row in d_m:
+		row[taxa1] = row[taxa1] + row[taxa2] - d_m at taxa1,taxa2 /2
+	drop row, col of taxa 2 from distance_matrix
+
+	update newick_string with new branch and branch lengths
+	
+	# Recurse, using the updated distance_matrix and newick_string
+	return neighbor_joining(distance_matrix, newick_string)
+
+
+read_fasta(filename)
+	""" Read sequences from FASTA file into a dictionary of id,seq pairs """
+	out_dict = empty dict
+	current_seq = empty string
+	seq_id = None
+	for line in file:
+		if line starts with >:
+			if we have a seq_id:
+				save current_seq to out_dict[seq_id]
+			empty current_seq
+			extract a new seq_id from line
+		else:
+			append line to current_seq
+	
+	save final value of current_seq to out_dict[seq_id]
+	return out_dict
+
+
+# Main code
+seq_dict = read_fasta(input .fasta)
+
+dist_matrix = build_distance_matrix(seq_dict)
+
+newick_tree = neighbor_joining(dist_matrix)
 ```
 
 # Successes
