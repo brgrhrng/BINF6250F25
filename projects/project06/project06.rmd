@@ -198,21 +198,23 @@ def build_distance_matrix(sequences: Dict[str, str]) -> Tuple[np.ndarray, List[s
         19
     """
     
-    # establish list for sequence IDs by using .keys() and converting that to list
+    # Establish list for sequence IDs by using .keys() and converting that to list
     seq_ids = list(sequences.keys())
     
     print()
-    # establish empty matrix of len(sequences.keys()) x len(sequences.keys())
+    # Establish empty matrix of len(sequences.keys()) x len(sequences.keys())
     n = len(seq_ids)
     dist_mat = np.empty(shape=(n,n), dtype = float)
 
-    # loop through each sequence ID, filling out the matrix at i,j and j,i because they will be the same score
+    # Loop through each sequence ID, filling out the matrix at i,j and j,i because they will be the same score
     for i, acc1 in enumerate(seq_ids):
       for j, acc2 in enumerate(seq_ids):
-        # Hamming?
+        # In the case that the sequences do not match in length, take the longer one.
         total_len = max((len(sequences[acc1]), len(sequences[acc2])))
+        # Distance (differences) is calculated by subtracting the smith waterman score from the total length of the longest sequence.
         dist_mat[i,j] =  total_len - smith_waterman(sequences[acc1], sequences[acc2]) 
         dist_mat[j,i] = dist_mat[i,j]
+        # No need to continue past the zeros.
         if i == j:
           break
     return (dist_mat, seq_ids)
@@ -240,6 +242,8 @@ def get_min_distance(matrix):
     '''
     
     minimum = np.min(matrix)
+    # Argmin finds the position of the minimum and returns a number representing that position.
+    # Unravel index unpacks that position into a tuple.
     min_pos = np.unravel_index(np.argmin(matrix), matrix.shape)
     return minimum, min_pos
     
@@ -275,7 +279,7 @@ def neighbor_joining(
     
     n = len(labels)
     
-    # IF distance_matrix is 2x2, return the final tree
+    # IF distance_matrix is 2x2, return the final tree.
     if n==2:
       length_from_root = distance_matrix[0,1]
       return f"({newick_str}:{length_from_root},{labels[1]}:{length_from_root})"
