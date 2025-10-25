@@ -1,0 +1,19 @@
+---
+title: "Project 07: Burrows-Wheeler Transform"
+output: html_document
+author: "Brooks Groharing"
+date: "`r format(Sys.time(), '%Y%m%d')`"
+output:
+  github_document:
+    html_preview: false
+    toc: true
+    toc_depth: 2
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE)
+library('reticulate')
+```
+
+
