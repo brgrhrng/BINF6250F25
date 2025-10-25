@@ -242,13 +242,16 @@ def get_min_distance(matrix):
     '''
     
     minimum = np.min(matrix)
-    # Argmin finds the position of the minimum and returns a number representing that position.
-    # Unravel index unpacks that position into a tuple.
-    min_pos = np.unravel_index(np.argmin(matrix), matrix.shape)
+    possible_positions = np.where(matrix == minimum)
+    # Create a list of tuples containing the coordinates to possible minimums.
+    choices = list(zip(possible_positions[0], possible_positions[1]))
+    # Randomly choose an index from that list. 
+    choice_index = np.random.choice(len(choices))
+    # Get corresponding coordinates.
+    min_pos = choices[choice_index]
     return minimum, min_pos
     
 ```
-
 
 :
 
@@ -279,10 +282,16 @@ def neighbor_joining(
     
     n = len(labels)
     
-    # IF distance_matrix is 2x2, return the final tree.
+    # If distance_matrix is 2x2, return the final tree
     if n==2:
       length_from_root = distance_matrix[0,1]
-      return f"({newick_str}:{length_from_root},{labels[1]}:{length_from_root})"
+      if len(labels[0]) > 1 and len(labels[1]) > 1:
+        return f"{newick_str}:{length_from_root}"
+      elif len(labels[0]) == 1:
+        final_taxa = labels[0]
+      else:
+        final_taxa = labels[1]
+      return f"({newick_str}:{length_from_root},{final_taxa}:{length_from_root})"
     
     # From distance matrix, calculate the distance of each sequence to all other sequences.
     total_distances = distance_matrix.sum(axis = 0)
@@ -357,26 +366,27 @@ def neighbor_joining(
 
     #print(distance_matrix)
     
+    #FORMATTING THE NEWICK TREE:
+    
     # At very beginning of neighbor joining.
     if not newick_str:
       newick = f"({id_2}:{limb_length2},{id_1}:{limb_length1})"
       #print(newick)
       return neighbor_joining(distance_matrix, labels, newick)
+    
     # Neither new taxa are the merged taxa.
-    if id_1[0] not in newick_str and id_2[0] not in newick_str:
+    elif id_1[0] not in newick_str and id_2[0] not in newick_str:
       unused_newick = newick_str
       new_newick = f"({id_2}:{limb_length2},{id_1}:{limb_length1})"
       newick = f"({unused_newick},{new_newick})"
       #print(newick)
       return neighbor_joining(distance_matrix, labels, newick)
-    # Attach unmerged taxa to merged taxa.  
-    newick = f"({id_2}:{limb_length2},{newick_str}:{limb_length1})"
     
-    #newick = f"({lbl_i}:{limb_lengthi}{newick_str},{lbl_j}:{limb_lengthj})"
-    #newick = f"({lbl_i}:{limb_lengthi},{lbl_j}:{limb_lengthj})"
-    
-    #print(newick)
-    
+    # Attach unmerged taxa to merged taxa
+    elif len(id_2) > 1:
+      newick = f"({id_1}:{limb_length1},{newick_str}:{limb_length2})"
+    else:
+      newick = f"({id_2}:{limb_length2},{newick_str}:{limb_length1})"
     
     return neighbor_joining(distance_matrix, labels, newick)
 ```
