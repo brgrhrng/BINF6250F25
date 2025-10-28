@@ -17,3 +17,76 @@ library('reticulate')
 ```
 
 
+
+```{python}
+# To get all cyclic rotations
+
+
+def get_bwt(inp_string: str) -> str:
+  """Basic BWT compresssion function."""
+  
+  if inp_string[-1] != "$":
+    inp_string += "$"
+  
+  n_chars = len(inp_string)
+  
+  wrapped = inp_string + inp_string
+  
+  cyclic_rotations = tuple(wrapped[i:i+n_chars] for i in range(0,n_chars))
+  sorted_rots = sorted(cyclic_rotations)
+
+  for rot in cyclic_rotations:
+    print(rot)
+  print("\n")
+  
+  for rot in sorted_rots:
+    print(rot)
+  
+  last_chars = (row[-1] for row in sorted_rots)
+  outstring = "".join(last_chars)
+  return outstring
+
+print("\n")
+print(get_bwt("TEST_WORD"))
+#(char for char in a+a)
+```
+
+
+```{python}
+def suffix_array(inp_string: str) -> list[int]:
+  """Function to calculate suffix-array for a given string.
+  
+    Computes the suffix array by sorting all suffixes of the input string
+    lexicographically and returning their starting positions.
+    
+    Args:
+        string: The input string to process.
+    
+    Returns:
+        A list of integers representing the starting positions of the
+        lexicographically sorted suffixes.
+    
+    Examples:
+        suffix_array('googol')) => [3, 0, 5, 2, 4, 1]
+        suffix_array('banana$')) => [6, 5, 3, 1, 0, 4, 2]
+      """
+  # Generate list of suffix strings
+  suffixes = [inp_string[i:] for i, char in enumerate(inp_string)]
+  
+  # Sort them lexicographically, preserving the intial index
+  suffixes_indexed = zip(suffixes, range(len(suffixes)))
+  suffixes_sorted = sorted(suffixes_indexed)
+  
+  # Return the indices
+  suffix_array = [suffix[1] for suffix in suffixes_sorted]
+  return suffix_array
+
+```
+
+```{python}
+import numpy as np
+
+print(np.array(rotations))
+
+
+```
