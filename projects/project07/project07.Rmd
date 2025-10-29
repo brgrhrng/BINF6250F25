@@ -18,41 +18,29 @@ library('reticulate')
 
 
 
-```{python}
-# To get all cyclic rotations
+```{python naive-bwt}
 
-
-def get_bwt(inp_string: str) -> str:
-  """Basic BWT compresssion function."""
+def BWT_naive(inp_string: str) -> str:
+  """
+  Basic (naive) implemention of Burrows-Wheeler Transform function.
+  This is easier to follow conceptually than a suffix array version, but inefficient since it creates an entire matrix of cyclic rotations. It is *not* used elsewhere in this project."""
   
   if inp_string[-1] != "$":
     inp_string += "$"
   
   n_chars = len(inp_string)
-  
   wrapped = inp_string + inp_string
   
   cyclic_rotations = tuple(wrapped[i:i+n_chars] for i in range(0,n_chars))
   sorted_rots = sorted(cyclic_rotations)
-
-  for rot in cyclic_rotations:
-    print(rot)
-  print("\n")
-  
-  for rot in sorted_rots:
-    print(rot)
   
   last_chars = (row[-1] for row in sorted_rots)
   outstring = "".join(last_chars)
   return outstring
-
-print("\n")
-print(get_bwt("TEST_WORD"))
-#(char for char in a+a)
 ```
 
 
-```{python}
+```{python fast-BWT-helpers}
 def suffix_array(inp_string: str) -> list[int]:
   """Function to calculate suffix-array for a given string.
   
@@ -65,15 +53,11 @@ def suffix_array(inp_string: str) -> list[int]:
     Returns:
         A list of integers representing the starting positions of the
         lexicographically sorted suffixes.
-    
-    Examples:
-        suffix_array('googol')) => [3, 0, 5, 2, 4, 1]
-        suffix_array('banana$')) => [6, 5, 3, 1, 0, 4, 2]
       """
   # Generate list of suffix strings
   suffixes = [inp_string[i:] for i, char in enumerate(inp_string)]
   
-  # Sort them lexicographically, preserving the intial index
+  # Sort them lexicographically, preserving the initial index
   suffixes_indexed = zip(suffixes, range(len(suffixes)))
   suffixes_sorted = sorted(suffixes_indexed)
   
@@ -81,12 +65,114 @@ def suffix_array(inp_string: str) -> list[int]:
   suffix_array = [suffix[1] for suffix in suffixes_sorted]
   return suffix_array
 
+
+def BWT_fast(inp_text: str) -> str:
+  """
+  Function to efficiently encode BWT transform from an input string using suffix arrays.
+  
+  Args:
+      inp_text: The input string to process.
+      
+  Returns:
+      String representing the BWT of inp_text
+  """
+  # Get a list of indices for all suffixes of the input string.
+  suffix_indices = suffix_array(inp_text)
+  
+  # For each suffix, get the character preceding it and add to a string.
+  bwt = ''.join(inp_text[suffix_i - 1] for suffix_i in suffix_indices)
+  
+  return bwt
 ```
 
-```{python}
-import numpy as np
 
-print(np.array(rotations))
+```{python helper-tests}
+for test_string in ('banana$',"googol$"):
+  print(suffix_array(test_string)) # [6, 5, 3, 1, 0, 4, 2] [6, 3, 0, 5, 2, 4, 1]
+  print(BWT_fast(test_string))  #'annb$aa' 'lo$oogg'
+```
+
+
+
+```{python index-class}
+class FMIndex:
+  """
+  An object that stores a compressed text sequence, with helper functions for efficient string matching based on the Burrows-Wheeler transform.
+  Only the compressed BW-T of the reference string, and some extra derived data structures are stored. The original sequence can be recovered  
+  TODO: store BWT in run-length compressed form, and expand it with a property.
+  Make initial sequence recoverable with either an explicit getter, or a property.
+  """
+  end_char = "$"
+  
+  def __init__(self, reference_text: str):
+    # Store counts dict for reference
+    self._ref_char_counts = self._count_chars(reference_text)
+    
+    # Append an end character to reference if needed
+    if reference_text[-1] != self.end_char:
+      reference_text += self.end_char
+    
+    # Encode reference as BWT and store it
+    self.bwt = BWT_fast(reference_text) # TODO: run-length encoding?
+    
+    # Store occurrences array (dict) for BWT
+    self._bwt_occurence_map = self._occurences_map(self.bwt)
+    
+  
+  def _count_chars(self, ref_string):
+    """Generate a dict of (char, count) tuples for all chars in alphabet, 
+    where "count" is the number of characters in ref_string lexicographically
+    smaller than char."""
+    
+    # Get alphabet of chars in ref_string, and sort lexicographically
+    alphabet = list(set(ref_string))
+    alphabet = sorted(alphabet)
+    
+    # Build the cumulative count dict
+    count_dict = {}
+    cumulative_count = 0
+    for char in alphabet:
+      count_dict[char] = cumulative_count
+      cumulative_count += ref_string.count(char)
+    
+    return count_dict
+  
+  def _occurences_map(self, ref_string):
+    """Creates an occurence dict, where keys are unique chars in ref_string 
+      alphabet, and values are lists such that:
+        occur_dict[char][i] = count of char in ref_string[0:i]
+    """
+    occur_dict = {}
+    for ref_i, ref_char in enumerate(ref_string):
+      # For each known alphabet value, copy previous occurrence count
+      #   to current position
+      for alpha in occur_dict.keys():
+        occur_dict[alpha].append(occur_dict[alpha][ref_i-1])
+      
+      # Initialize occurences list for reference character if need be,
+      #   and then increase its value at the current position
+      occur_dict[ref_char] = occur_dict.get(ref_char, [0]*(ref_i+1))
+      occur_dict[ref_char][ref_i] += 1
+    return occur_dict
+  
+  def count(query: str) -> int:
+    """Count occurrences of a pattern in encoded string."""
+    pass
+  
+  def locate(query: str) -> list[int]:
+    """Get the index of all occurrences of pattern in encoded string"""
+    pass
+  
+test1 = FMIndex("banana")
+
+print(test1.bwt)
+print(test1._bwt_occurence_map)
 
 
 ```
+
+>>> cal_count('ATGACG')
+        {'A': 0, 'C': 2, 'G': 3, 'T': 5}
+        
+        >>> cal_count('banana')
+        {'a': 0, 'b': 3, 'n': 4}
