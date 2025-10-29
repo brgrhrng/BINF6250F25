@@ -246,19 +246,23 @@ class FMIndex:
     if lower == 0:
       lower_new = 1
     else:
-      lower_new = lesser_char_count + self._bwt_occurence_map[char][lower-1] + 1
+      lower_new = lesser_char_count + self._bwt_occurence_map[char][lower-1]
     upper_new = lesser_char_count + self._bwt_occurence_map[char][upper] - 1
     
     return lower_new, upper_new
     
     
-test1 = FMIndex("TACATABATACATACATACB")
+test1 = FMIndex("banbnana")
 
 print(test1.bwt)
 print(test1.get_reference_string())
-print(test1.count("TAC"))
 print(test1.suffix_indexes)
-print(test1.locate("TAC"))
+print(test1.locate("nb"))
+# as-is, I'm getting hits when the last position is a mismatch, but lower than the
+#   query's last position. ie locate("nb") also locates "na".
+# Most likely I have a slight error in the offsets on my indices above
+#   note that I substracted 1 from both lower and upper compared to the slides,
+#   since I am consistently indexing from zero
 
 #"".join(f"{test1.last_to_first(i)}," for i, char in enumerate(test1.bwt))
 
