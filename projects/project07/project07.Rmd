@@ -232,9 +232,10 @@ class FMIndex:
     for char in query[::-1]:
       if lower > upper:
         return [] # no match.
-      lower, upper = self._update_search_window(char,upper,lower)
-      
-    hits = [self.suffix_indexes[i] for i in range(lower,upper+1)]
+      lower, upper = self._update_search_window(char, upper, lower)
+    
+    print(lower,upper)  
+    hits = [self.suffix_indexes[i] for i in range(lower,upper)]
     return sorted(hits)
   
   
@@ -244,20 +245,23 @@ class FMIndex:
     lesser_char_count = self._lesser_char_counts[char]
     
     if lower == 0:
-      lower_new = 1
+      lower_new = lesser_char_count
     else:
       lower_new = lesser_char_count + self._bwt_occurence_map[char][lower-1]
-    upper_new = lesser_char_count + self._bwt_occurence_map[char][upper] - 1
-    
+    upper_new = lesser_char_count + self._bwt_occurence_map[char][upper]
+    print("bounds:",lower_new,upper_new)
     return lower_new, upper_new
     
     
-test1 = FMIndex("banbnana")
+test1 = FMIndex("banana")
 
 print(test1.bwt)
 print(test1.get_reference_string())
 print(test1.suffix_indexes)
-print(test1.locate("nb"))
+print([test1.get_reference_string()[i] for i in test1.suffix_indexes])
+print(test1.locate("na")) # 2 6
+
+print(test1._bwt_occurence_map)
 # as-is, I'm getting hits when the last position is a mismatch, but lower than the
 #   query's last position. ie locate("nb") also locates "na".
 # Most likely I have a slight error in the offsets on my indices above
