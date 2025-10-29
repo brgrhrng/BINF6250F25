@@ -105,7 +105,6 @@ class FMIndex:
   An object that stores a compressed text sequence, with methods for efficient string matching based on the Burrows-Wheeler transform.
   Only the compressed BW-T of the reference string, and some extra derived data structures are stored.
   TODO: store BWT in run-length compressed form, and expand it with a property.
-  TODO: Make initial sequence recoverable with either an explicit getter, or a property.
   """
   end_char = "$"
   
