@@ -33,10 +33,14 @@ def BWT_naive(inp_string: str) -> str:
   
   cyclic_rotations = tuple(wrapped[i:i+n_chars] for i in range(0,n_chars))
   sorted_rots = sorted(cyclic_rotations)
-  
+  [print(rot) for rot in sorted_rots]
   last_chars = (row[-1] for row in sorted_rots)
   outstring = "".join(last_chars)
   return outstring
+
+test = BWT_naive("PINEAPPLE")
+print("\n",test)
+print(sorted(test))
 ```
 
 
@@ -66,10 +70,10 @@ def suffix_array(inp_string: str) -> list[int]:
   return suffix_array
 
 
-def BWT_fast(inp_text: str) -> str:
+def BWT_fast(inp_text: str, precomputed_suffixes=None) -> str:
   """
   Function to efficiently encode BWT transform from an input string using suffix arrays.
-  
+  The suffix
   Args:
       inp_text: The input string to process.
       
@@ -105,24 +109,30 @@ class FMIndex:
   end_char = "$"
   
   def __init__(self, reference_text: str):
-    # Store counts dict for reference
-    self._ref_char_counts = self._count_chars(reference_text)
-    
     # Append an end character to reference if needed
     if reference_text[-1] != self.end_char:
       reference_text += self.end_char
     
-    # Encode reference as BWT and store it
-    self.bwt = BWT_fast(reference_text) # TODO: run-length encoding?
+    # Encode reference as BWT and store it.
+    self.bwt = BWT_fast(reference_text) # last column from sorted BWT matrix
+    self.first_col = "".join(sorted(self.bwt)) # recovered first column
+    
+    # Store counts dict for reference
+    self._lesser_char_counts = self._count_lesser_chars(reference_text)
     
     # Store occurrences array (dict) for BWT
     self._bwt_occurence_map = self._occurences_map(self.bwt)
     
+    # I'm not sure if I'm supposed to store the full suffix index in
+    # an FM index, or compute it on the fly.
+    # Currently my BWT_fast already calculates the index internally, and discards it;
+    #   so if we do want to save it indefinitely, I should fix this duplicated work.
+    self.suffix_indexes = suffix_array(reference_text)
   
-  def _count_chars(self, ref_string):
+  def _count_lesser_chars(self, ref_string):
     """Generate a dict of (char, count) tuples for all chars in alphabet, 
-    where "count" is the number of characters in ref_string lexicographically
-    smaller than char."""
+    where "count" is the number of characters in ref_string which are     
+      lexicographically smaller than char."""
     
     # Get alphabet of chars in ref_string, and sort lexicographically
     alphabet = list(set(ref_string))
@@ -155,6 +165,25 @@ class FMIndex:
       occur_dict[ref_char][ref_i] += 1
     return occur_dict
   
+  def last_to_first(self, last_index: int):
+    """Given a position in the last column of BWT matrix (self.bwt), return
+    the index of the same character in the first column."""
+    
+    # The ith instance of a specific character in the BWT column
+    # corresponds to the ith instances of it in the first column.
+    #     ex: The third A in last column is the third A in the first column
+    
+    # Further, the first column is lexicographically sorted. SO, we know
+    # that the third A will be after ALL lesser characters, plus 2 preceding As.
+    
+    char = self.bwt[last_index]
+    char_number = self._bwt_occurence_map[char][last_index]
+    lesser_char_count = self._lesser_char_counts[char]
+    
+    first_col_index = lesser_char_count + char_number - 1 # 0-indexed
+    
+    return first_col_index
+    
   def count(query: str) -> int:
     """Count occurrences of a pattern in encoded string."""
     pass
@@ -166,13 +195,9 @@ class FMIndex:
 test1 = FMIndex("banana")
 
 print(test1.bwt)
-print(test1._bwt_occurence_map)
+print(test1.first_col)
 
+"".join(f"{test1.last_to_first(i)}," for i, char in enumerate(test1.bwt))
+  
 
 ```
-
->>> cal_count('ATGACG')
-        {'A': 0, 'C': 2, 'G': 3, 'T': 5}
-        
-        >>> cal_count('banana')
-        {'a': 0, 'b': 3, 'n': 4}
