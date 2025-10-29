@@ -227,14 +227,13 @@ class FMIndex:
   def locate(self, query: str) -> list[int]:
     """Get the index of all occurrences of pattern in encoded string.
     Indices are returned in an ordered list."""
-    lower, upper = 0, len(self.suffix_indexes)-1
     
+    lower, upper = 0, len(self.suffix_indexes)-1
     for char in query[::-1]:
       if lower > upper:
         return [] # no match.
       lower, upper = self._update_search_window(char, upper, lower)
-    
-    print(lower,upper)  
+      
     hits = [self.suffix_indexes[i] for i in range(lower,upper)]
     return sorted(hits)
   
@@ -248,26 +247,21 @@ class FMIndex:
       lower_new = lesser_char_count
     else:
       lower_new = lesser_char_count + self._bwt_occurence_map[char][lower-1]
-    upper_new = lesser_char_count + self._bwt_occurence_map[char][upper]
-    print("bounds:",lower_new,upper_new)
+    upper_new = lesser_char_count + self._bwt_occurence_map[char][upper-1]
+    
     return lower_new, upper_new
-    
-    
-test1 = FMIndex("banana")
+```    
 
-print(test1.bwt)
-print(test1.get_reference_string())
-print(test1.suffix_indexes)
-print([test1.get_reference_string()[i] for i in test1.suffix_indexes])
-print(test1.locate("na")) # 2 6
+```{python} 
+test_seq = "banana"
+test_query = "ana"
+test1 = FMIndex(test_seq)
 
-print(test1._bwt_occurence_map)
-# as-is, I'm getting hits when the last position is a mismatch, but lower than the
-#   query's last position. ie locate("nb") also locates "na".
-# Most likely I have a slight error in the offsets on my indices above
-#   note that I substracted 1 from both lower and upper compared to the slides,
-#   since I am consistently indexing from zero
+print(f"SEQ: {test_seq}")
+print(f"1st: {test1.get_reference_string()}")
+print(f"BWT: {test1.bwt}")
+print(f"suffix_i: {test1.suffix_indexes}")
 
-#"".join(f"{test1.last_to_first(i)}," for i, char in enumerate(test1.bwt))
-
+print(f"\nQuery: {test_query}")
+print(f"Locations: SEQ{test1.locate(test_query)}") # 1 3
 ```
