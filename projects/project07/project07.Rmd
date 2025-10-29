@@ -87,6 +87,7 @@ def BWT_fast(inp_text: str, precomputed_suffixes=None) -> str:
   bwt = ''.join(inp_text[suffix_i - 1] for suffix_i in suffix_indices)
   
   return bwt
+
 ```
 
 
@@ -101,10 +102,10 @@ for test_string in ('banana$',"googol$"):
 ```{python index-class}
 class FMIndex:
   """
-  An object that stores a compressed text sequence, with helper functions for efficient string matching based on the Burrows-Wheeler transform.
-  Only the compressed BW-T of the reference string, and some extra derived data structures are stored. The original sequence can be recovered  
+  An object that stores a compressed text sequence, with methods for efficient string matching based on the Burrows-Wheeler transform.
+  Only the compressed BW-T of the reference string, and some extra derived data structures are stored.
   TODO: store BWT in run-length compressed form, and expand it with a property.
-  Make initial sequence recoverable with either an explicit getter, or a property.
+  TODO: Make initial sequence recoverable with either an explicit getter, or a property.
   """
   end_char = "$"
   
@@ -115,7 +116,6 @@ class FMIndex:
     
     # Encode reference as BWT and store it.
     self.bwt = BWT_fast(reference_text) # last column from sorted BWT matrix
-    self.first_col = "".join(sorted(self.bwt)) # recovered first column
     
     # Store counts dict for reference
     self._lesser_char_counts = self._count_lesser_chars(reference_text)
@@ -128,6 +128,7 @@ class FMIndex:
     # Currently my BWT_fast already calculates the index internally, and discards it;
     #   so if we do want to save it indefinitely, I should fix this duplicated work.
     self.suffix_indexes = suffix_array(reference_text)
+  
   
   def _count_lesser_chars(self, ref_string):
     """Generate a dict of (char, count) tuples for all chars in alphabet, 
@@ -147,6 +148,7 @@ class FMIndex:
     
     return count_dict
   
+  
   def _occurences_map(self, ref_string):
     """Creates an occurence dict, where keys are unique chars in ref_string 
       alphabet, and values are lists such that:
@@ -164,6 +166,7 @@ class FMIndex:
       occur_dict[ref_char] = occur_dict.get(ref_char, [0]*(ref_i+1))
       occur_dict[ref_char][ref_i] += 1
     return occur_dict
+  
   
   def last_to_first(self, last_index: int):
     """Given a position in the last column of BWT matrix (self.bwt), return
@@ -183,19 +186,54 @@ class FMIndex:
     first_col_index = lesser_char_count + char_number - 1 # 0-indexed
     
     return first_col_index
+  
+  
+  def get_first_col(self):
+    """Recover first column in the BWT matrix.
+    Since the rows in the matrix were lexicographically sorted,
+    Column 0 can always be obtained by lex. sorting any other column."""
+    first_col = "".join(sorted(self.bwt))
+    return first_col
     
+    
+  def get_reference_string(self):
+    """Invert the Burrows-Wheeler transform, recovering the original sequence.
+    This is recalculated every time the getter is called, and discarded--so store
+    it *externally* if you need it."""
+    
+    last_col_i = 0
+    reference = ""
+    while len(reference) < len(self.bwt):
+      reference += self.bwt[last_col_i]
+      
+      # Find the current character's index in the first column
+      first_col_i = self.last_to_first(last_col_i)
+      
+      # Because our rows are cyclic rotations, the last
+      #   character in a row directly precedes the first character
+      #   in the original sequence.
+      # We can use this to trace the next character in the sequence.
+      last_col_i = first_col_i
+    
+    # Our sequence was traced back-to-front, so it needs to be reversed.  
+    return reference[::-1]
+  
+  
   def count(query: str) -> int:
     """Count occurrences of a pattern in encoded string."""
     pass
+  
   
   def locate(query: str) -> list[int]:
     """Get the index of all occurrences of pattern in encoded string"""
     pass
   
+
 test1 = FMIndex("banana")
 
 print(test1.bwt)
-print(test1.first_col)
+
+print(test1.get_reference_string())
 
 "".join(f"{test1.last_to_first(i)}," for i, char in enumerate(test1.bwt))
   
