@@ -1,0 +1,27 @@
+---
+title: "Project 08: Viterbi Algorithm"
+output: html_document
+author: "Brooks Groharing and Jacque Caldwell"
+date: "`r format(Sys.time(), '%Y%m%d')`"
+output:
+  github_document:
+    html_preview: false
+    toc: true
+    toc_depth: 2
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE)
+library('reticulate')
+```
+
+```{python py-imports}
+import markov_models # custom module from this project
+```
+
+```{python load-data}
+# load up the data into an HMM object, bring your friends
+
+
+```
