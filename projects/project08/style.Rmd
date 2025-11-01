@@ -1,0 +1,45 @@
+---
+title: "style"
+output: html_document
+---
+
+# Style Guide
+
+## see style.md
+
+## At our first discussion we decided to:
+Work on Explorer/RStudio, but most importantly work via github as we have been so far.  As we move forward we will likely be putting helper functions in librarys (.py) files for ease-of-use.
+
+We decided that we will be doing this OOP model with a class and methods.
+
+We decided that at least initially we will be reading in our "observation string" as each character of the string represents a "single state of time t with hidden properties (that emit)".   A quick look on-line to see other ways of using HMM shows that most appear to use a list of strings or a list of characters, if we keep this as using a "list of" I think we will be good here.  OOP will allow us to be more adaptable in the furture (more extensible).
+
+## Variable names, function names, class names, globals?
+PEP8-ish
+
+### naming conventions
+Naming Conventions:
+Use snake_case for variable and function names (e.g., my_variable, calculate_total).
+Use CamelCase for class names (e.g., MyClass).
+Use ALL_CAPS for globa constants (e.g., MAX_SIZE).
+
+### use of i,j for indexes?  
+Agreed that this is generally okay -- however if looping through (enumerate) in a string think char or a better name if possible; try to give more descriptive name
+
+### importing libraries/pacakages, anything else?  (consider matplotlib and seaborn)
+numpy for now, will continue to disscuss
+
+### comments go beside the text and not above or below the code it is describing?
+agreed.... self documenting; meaningful variable names -- avoid foo, temp, str 
+
+### document as you go as if you were describing to your partner who doesn’t understand your part the way you do.  
+Agreed
+
+### function calls are:
+(using class...). helper functions need viterbi in the name, methods should be protected within the class.
+
+####documented at creation by the person who implemented the code
+agree 
+
+#### Unit testing is created by the implementor at the time the function is written, and stored near the function (could be in the chunk if we use Rmd) – these can be moved to the end of the file when we are ready to present our code. 
+Agreed as time allows
