@@ -36,8 +36,31 @@ class HMM:
         new_state.set_transitions(trans_probs[state_name])
         
       self.states.append(new_state)
-
-
+  
+  
+  def run_viterbi(observations):
+    """
+    Run the viterbi algorithm to determine the most likely sequence of states
+    that would produce a given set of observations under this model.
+    
+    args:
+      observations: a list of observation values, or a string where each 
+                    character is 1 observation.
+    
+    Returns: list of state names
+    """
+    if observations == str:
+      observations = [char for char in observations]
+    
+    if not isinstance(observations, list):
+      raise Exception("\'observations\' must be a list or string.")
+    
+    # 1. initialize the viterbi and traceback matrices
+    # 2. populate them cell by cell
+    # 3. traceback
+    pass
+  
+  
 class HiddenState:
   """
   An object representing one state in a hidden markov model.
