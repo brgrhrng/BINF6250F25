@@ -17,11 +17,33 @@ library('reticulate')
 ```
 
 ```{python py-imports}
-import markov_models # custom module from this project
+import markov_models as mm # module we created
 ```
 
 ```{python load-data}
-# load up the data into an HMM object, bring your friends
+# Example data provided in project description
+obs = "GGCACTGAA"
 
+init_probs = {
+    "I": 0.2, "G": 0.8}
+trans_probs = {
+    "I": {"I": 0.7, "G": 0.3}, "G": {"I": 0.1, "G": 0.9}}
+emit_probs = {
+    "I": {"A": 0.1, "C": 0.4, "G": 0.4, "T": 0.1},
+    "G": {"A": 0.3, "C": 0.2, "G": 0.2, "T": 0.3}}
+
+test_HMM = mm.HMM(init_probs, trans_probs, emit_probs)
+
+
+print("--------------")
+for i,state in enumerate(test_HMM.states):
+  print(f"STATE {i}: \"{state.name}\"")
+  print(f"Init_p: {state.init_prob}")
+  print(f"emission names: {state.emissions}")
+  print(f"emit probs:     {state.emission_probs}")
+  
+  print(f"out_states: {state.out_states}")
+  print(f"out_probs: {state.out_state_probs}")
+  print("\n")
 
 ```
