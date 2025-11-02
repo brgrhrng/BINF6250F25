@@ -16,7 +16,8 @@ class HMM:
   """
   def __init__(self, init_probs, trans_probs, emit_probs):
     """
-    Initialize the HMM object
+    Initialize the HMM object. Currently this creates a state
+    if and only if it has an emissions dict in emit_probs.
     Args:
       init_probs: dict of (state_name, probability) pairs
       trans_prob: nested dict where the key is a state name, and the value is
@@ -27,11 +28,12 @@ class HMM:
     self.emissions = list(list(emit_probs.items())[0][1].keys()) # emission keys from 1st state
     self.states = [] # container for HiddenState objects
     
-    for name in emit_probs.keys(): # Only create states that have an emissions dict.
-      new_state = HiddenState(name, init_prob = init_probs[name], emissions_dict = emit_probs[name])
+    state_names = emit_probs.keys()
+    for state_name in state_names:
+      new_state = HiddenState(state_name, init_prob = init_probs[name], emissions_dict = emit_probs[name])
       
-      if name in trans_probs.keys():
-        new_state.set_transitions(trans_probs[name])
+      if state_name in trans_probs.keys():
+        new_state.set_transitions(trans_probs[state_name])
         
       self.states.append(new_state)
 
@@ -43,9 +45,11 @@ class HiddenState:
     name: a unique name representing the state
     init_prob: probability of state coming from the start node
     
+    out_states: list of HiddenState names representing outbound transitions
+    out_probs: list of probabilities of transitioning to each out_state
+    
     emissions, emission_probs: list of possible emissions and their probabilities
-    out_states, out_state_probs: list of HiddenState names representing outbound transitions, and their probabilities
-      """
+    """
   def __init__(self, name: str, init_prob: float, emissions_dict: dict[str,float]):
     """
     Initialize an object representing a state.
@@ -68,7 +72,7 @@ class HiddenState:
     
   def set_transitions(self, transitions_dict):
     """
-    Update outgoing edges to match transitions_dict.
+    Update outgoing edges to match provided transitions_dict.
     """
     self.out_states = list(transitions_dict.keys())
     self.out_state_probs = list(transitions_dict.values())
