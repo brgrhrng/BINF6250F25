@@ -30,7 +30,7 @@ class HMM:
     
     state_names = emit_probs.keys()
     for state_name in state_names:
-      new_state = HiddenState(state_name, init_prob = init_probs[name], emissions_dict = emit_probs[name])
+      new_state = HiddenState(state_name, init_prob = init_probs[state_name], emissions_dict = emit_probs[state_name])
       
       if state_name in trans_probs.keys():
         new_state.set_transitions(trans_probs[state_name])
