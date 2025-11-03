@@ -207,6 +207,10 @@ Vis_opt_path(opt_path)
 Jacque learned how to add a new branch to a prior repo fork on github.
 
 # Struggles
+
+i = ROWS = x position = hidden states
+j = COLS = y position = time/emissions/obs
+
 Description of the stumbling blocks the team experienced
 
 # Personal Reflections
