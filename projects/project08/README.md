@@ -202,6 +202,28 @@ If not (opt_path == 0)
 Vis_opt_path(opt_path)
 #end Main()
 ```
+Our initial Class structure(s)
+```{}
+class HiddenState:
+    name = obs
+    init_probs = init_prob
+    emission_probs = emissions_dict
+    set_transitions(self, transitions_dict)
+       out_state_probs = transision_dict
+    emit()
+        returns random emission prob.
+
+class HMM:
+    emissions....
+    self.states = [] (will be list of HiddenState objs)
+    state_names = emit_probs.keys)
+    __init__(init_probs,trans_probs,emit_probs)
+    __traceback_viterbi__(traceback_pos,backptrs)
+    __fill_viterbi_matrix__(obs)
+    run_viterbi(obs)
+    
+
+```
 
 # Successes
 Jacque learned how to add a new branch to a prior repo fork on github.
