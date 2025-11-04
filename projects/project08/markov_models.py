@@ -76,11 +76,11 @@ class HMM:
       
   def run_viterbi(self, observations):
     """
-    Run the viterbi algorithm to determine the most likely sequence of states
-    that would produce a given set of observations under this model.
+    Predict the most likely sequence of states that would produce a given
+    set of observations in this model, using the viterbi algorithm.
     Args:
       observations: a list of observation values, or a string where each 
-                    character is 1 observation.
+                    character represents 1 observation.
     Returns: list of state names
     """
     if type(observations) == str: # convert str -> list(char)
@@ -165,12 +165,10 @@ class HMM:
   def __traceback_viterbi__(self, traceback_pos, backptrs):
     ''' private function that traces back the backpointers, 
         obtaining the most probable sequence of states up to traceback_pos
-    
-    args: 
+    Args: 
       traceback_pos: pos to start traceback of backptrs.
       backpointers: backpointers to create our final traceback of hidden states
-      
-    returns:  list of strings that show the hidden states
+    Returns:  list of strings that show the hidden states
     '''
     tb_obs_i, state_i = traceback_pos
     tb_obs_i, state_i = int(tb_obs_i), int(state_i)
