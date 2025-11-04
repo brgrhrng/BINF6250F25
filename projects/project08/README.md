@@ -221,26 +221,37 @@ class HMM:
     __traceback_viterbi__(traceback_pos,backptrs)
     __fill_viterbi_matrix__(obs)
     run_viterbi(obs)
-    
-
 ```
 
 # Successes
 Jacque learned how to add a new branch to a prior repo fork on github.
 
+Wrangled a multi for-loop extravaganza into submission.
+
+Did not struggle do find libraries to do what we needed, mostly our skills
+were just "right there", thanks to prior assignments/projects.
+
+
 # Struggles
+Indexing into multiple arrays at the same time, during multiple loops, remembering what 
+order the indexes need to be in for each structure.
 
-i = ROWS = x position = hidden states
-j = COLS = y position = time/emissions/obs
+Trying to remain flexible with class structure/infrastructure when we're not quite sure
+what the next steps are going to be.
 
-Description of the stumbling blocks the team experienced
+(Jacque) Continue to find it difficult to visualize classes/objects, and items/methods that
+are private/hidden, Brooks helped.  A lot.
 
 # Personal Reflections
 ## Group Leader
 Group leader's reflection on the project
 
 ## Other member
-Other members' reflections on the project
+Alogothim is not the problem, getting it implemented is the problems.  Arrays of 
+arrays of arrays of arrays of arrays (okay lists of lists of dicts).  Indexing gets 
+complicated.  Our focus, as on our last assignment, is very different, but complimentary,
+allowing us to get all the coding done, and make sure the details are smoothed over, 
+without getting bogged down in the details of either.
 
 # Generative AI Appendix and references
 # Cite:

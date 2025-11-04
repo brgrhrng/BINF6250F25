@@ -7,6 +7,7 @@
 
 import random
 import numpy as np
+TESTING = False
 
 class HiddenState:
   """
@@ -128,8 +129,8 @@ class HMM:
         v_matrix[state_i,0] = state.init_prob * first_emission_prob
       backpointers[state_i,0] = -1 # no prior column, so set pointer to -1
     
-    print(f"v_matrix {v_matrix}")
-    print(observations)
+    if TESTING: print(f"v_matrix {v_matrix}")
+    if TESTING: print(observations)
     
     # Now we can go column by column, filling in each cell in our matrices.
     # For each possible path into a cell:
@@ -158,7 +159,7 @@ class HMM:
         v_matrix[state_i, obs_i] = max(total_path_probs)
         backpointers[state_i, obs_i] = np.argmax(total_path_probs)
     
-    print(f"v_matrix {v_matrix} backpointers {backpointers}")    
+    if TESTING: print(f"v_matrix {v_matrix} backpointers {backpointers}")    
     return(v_matrix, backpointers)
   
   
@@ -182,27 +183,30 @@ class HMM:
     return state_names
   
 
+TESTING = False
+
+if TESTING:    # this entire block is commented out when TESTING= FALSE
 # Example data provided in project description
-obs = "GGCACTGAA"
+  obs = "GGCACTGAA"
 #obs = "ATGCGCGGCTTAGCGCGGATCGCGCTTAGCGCG"
 
-init_probs = {
-    "I": 0.2, "G": 0.8}
-trans_probs = {
-    "I": {"I": 0.7, "G": 0.3}, "G": {"I": 0.1, "G": 0.9}}
-emit_probs = {
-    "I": {"A": 0.1, "C": 0.4, "G": 0.4, "T": 0.1},
-    "G": {"A": 0.3, "C": 0.2, "G": 0.2, "T": 0.3}}
+  init_probs = {
+      "I": 0.2, "G": 0.8}
+  trans_probs = {
+      "I": {"I": 0.7, "G": 0.3}, "G": {"I": 0.1, "G": 0.9}}
+  emit_probs = {
+      "I": {"A": 0.1, "C": 0.4, "G": 0.4, "T": 0.1},
+      "G": {"A": 0.3, "C": 0.2, "G": 0.2, "T": 0.3}}
 
-test_HMM = HMM(init_probs, trans_probs, emit_probs)
+  test_HMM = HMM(init_probs, trans_probs, emit_probs)
 
-print("--------------")
-for i,state in enumerate(test_HMM.states):
-  print(f"STATE {i}: \"{state.name}\"")
-  print(f"Init_p: {state.init_prob}")
-  print(f"emit probs:     {state.emission_probs}")
-  print(f"out_probs: {state.transition_to}")
-  print("\n")
+  print("--------------")
+  for i,state in enumerate(test_HMM.states):
+    print(f"STATE {i}: \"{state.name}\"")
+    print(f"Init_p: {state.init_prob}")
+    print(f"emit probs:     {state.emission_probs}")
+    print(f"out_probs: {state.transition_to}")
+    print("\n")
 
-test_HMM.run_viterbi(obs)
-
+  test_HMM.run_viterbi(obs)
+# End TESTING if statement.

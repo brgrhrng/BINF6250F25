@@ -39,11 +39,13 @@ print("--------------")
 for i,state in enumerate(test_HMM.states):
   print(f"STATE {i}: \"{state.name}\"")
   print(f"Init_p: {state.init_prob}")
-  print(f"emission names: {state.emissions}")
   print(f"emit probs:     {state.emission_probs}")
-  
-  print(f"out_states: {state.out_states}")
-  print(f"out_probs: {state.out_state_probs}")
+  print(f"out_probs: {state.transition_to}")
   print("\n")
+
+test_path = test_HMM.run_viterbi(obs)
+
+print(obs)
+print(test_path)
 
 ```
