@@ -1,227 +1,104 @@
-# BINF6250F25
-# Module 08 HMM: Viterbi
-
-#Setup
-BINF6250; Fall 2025
-Project 08.Rmd
-Viteri Algorithm; a HMM with dynamic programming
-Authors: Brooks Groharing and Jacqueline Caldwell
-Due:  November 5, 2025
+# Module 08: HMMs and the Viterbi Algorithm
+- BINF6250; Fall 2025
+- Authors: Brooks Groharing and Jacqueline Caldwell
+- Due:  November 5, 2025
 
 # Introduction
-Our project involves creating a hidden Markov model using dynamic programming.  This hidden Markov Model is the Viterbi algorithm for finding the most likely sequence of hidden states given a sequence of observations.
-The Viterbi algorithm is a dynamic programming approach to decoding hidden states, offering:
+For this project, we created a custom class to store a Hidden Markov Model (HMM), and implemented a method in this class that uses the Viterbi algorithm to find the most likely sequence of hidden states from the model to explain a provided sequence of observations.
+
+The Viterbi algorithm is a dynamic programming approach predicting hidden states, offering:
 * Optimal path finding (finding the most probable sequence of hidden states)
 * Dynamic programming (using tabulation to avoid redundant calculations)
 * Log-space computation (to prevent numerical underflow)
 * Traceback Mechanism (reconstructs the optimal state path after computation is complete)
 
-# Information on algorithm given to us:
-## basic algorithm structure:
-Algorithm structure, involves three steps:
-* Initialization
-**Setup Prob matrix using initial probabilities and the first observation
-***These were given to us
-**	Initialize traceback matrix for path reconstruction.
-* Recursion 
-** For each position and possible state, calculate the maximum probability 
-** Store both probabilities (just max, or states and max?) and traceback pointers
-** Apply transition and emission probabilities at each step 
-* Termination
-** Identify the final state with the highest probability
-** Traceback through the matrix to reconstruct the optimal path.
+## Further information (provided to us in the assignment description):
+### Basic Algorithm Structure
+* **Initialization**: Create two matrices with columns equal to the number of observations, and rows equal to the possible states from the model.
+	* **Viterbi Matrix**: store the cumulative probability of the most probable sequence of states leading to the state/observation represented in a given cell. Initialize first column such that:
 
-##Computational Considerations:
+		$$p_{obs,  state} = p_{0}(state) * p(observation | state)$$
+
+	* **Traceback Matrix**: stores pointers to the previous state/observation (cell) in the most probable path leading into each given cell. Initialize first column as -1 (or other value representing a "dead end"--it doesn't really matter, since we don't look back past column 1)
+
+* **Propagation**: For each observation and possible state (or, cell) in the matrix, calculate the cumulative probability of each possible path leading into this observation/state as:
+
+	$$p_{obs, state|path} = p_{obs-1,state-1} * p_{transition}(state_{current}, state_{prior}) * p_{emission|state} $$
+
+	Store the largest p(path) from the previous column in Viterbi Matrix at the current cell, and a pointer to the the prior observation/state in the best path to the Traceback Matrix.
+
+* **Termination:**
+
+	* Identify the final state with the highest probability.
+
+	* Starting from this cell, follow the pointers in Traceback Matrix to reconstruct the sequence of states in the optimal path.
+
+## Computational Considerations:
 
 Important factors to consider in implementation:
 * Time complexity : O(NxK^2) where N is sequence length and K is number of states
 * Space complexity: O(NxK) for storing the dynamic programming matrix
 * Numerical Stability:  Using log probabilities to prevent underflow
 * Edge Cases:  Handling zero probabilities with pseudocounts 
-Example Data Structures Given:
-* Example observation sequence
-```{}
-obs = "GGCACTGAA"
-```
 
-## Example initial probabilities (probability of starting in each state)
 
-```{}
-init_probs = {
-    "I": 0.2,
-    "G": 0.8
-}
-```
-
-## Example transition probabilities (probability of moving from one state to another)
-```{}
-trans_probs = {
-    "I": {"I": 0.7, "G": 0.3},
-    "G": {"I": 0.1, "G": 0.9}
-}
-```
-
-## Example emission probabilities (probability of observing a symbol in a given state)
-
-```{}
-emit_probs = {
-    "I": {"A": 0.1, "C": 0.4, "G": 0.4, "T": 0.1},
-    "G": {"A": 0.3, "C": 0.2, "G": 0.2, "T": 0.3}
-}
-```
-
-## Other notes to consider:
-* You will only be given these four data structures
-* No other template code or coding-by-contract will be provided
-* It may benefit you to utilize OOP as you will be developing out the whole HMM suite throughout the next 3 modules.
-* Make no assumptions as to the number of hidden states you will be given.
-* Make no assumptions as to the number of distinct observations you will be given
-* Make no assumptions that the data structures will be modeling CpG islands (these are just examples) 
-
-# Further Discussion/information on Viterbi
-
+### For further discussion/information on Viterbi
 See notes/virterbi_info.Rmd
 
-# Style Guide
-
-See notes/style.Rmd
-
-# Pseudocode
-## Class
-```{}
-HMM.py
-class HMM-
+# Class Outline/Pseudocode
+## markov_models.py
+```{Python}
+class HMM: # A Hierarchical Markov Model object
   DATA:
-  hidden_states = list containing states
-  possible_emissions (A T G C)
+  hidden_states: list containing HiddenState objects
+  possible_emissions: list of values that every HiddenState might emit
 
   METHODS--
-    viterbi(list of observations):
-      Constructs viterbi matrix
-      traces back to reconstruct likely series of states
-      returns (list of references/IDs of hidden states, probability)
-    _build_matrix()
-    _traceback()
+	init(intial probabilities, transition probabilities, emission probabilities):
+		Object constructor; Parses provided dictionaries (see input data format below) to generate HiddenState objects and an emissions list.
+	run_viterbi(list of observations):
+		Construct viterbi and backpointer matrix (Initialize + Propagate)
+      	Trace through backpointers to reconstruct most probable states at each observation index (Termination)
+      	RETURN list of state names
 
-    load_charstring()
-    load_codons()
-```
-We are going to need functions/methods that do these things:
-
-##Initialize viterbi table
-```{}
-Function “init_viterbi”(obs_states: string,
-                        init_probs: [Dict] )
-        returns state_prob_matrix(virtebri_matrix)
-
-# Setup state_prob_matrix of Virtebri_table
-# "I" = in CpG island
-# "G" = in Genome
-# obs is a string of characters whose position indicates a "state"; and whose 
-#      value or character represents the emission table
-   
-    create the matrix that is 
-        rows - number_of_hidden_states rows; 
-        cols - length_of_obs_list of Virtebri_table class
-        
-    Set virtebri_matrix[0][0] to init_probs[“I”].values # prob of going from init to “I” state
-    
-    virtebri_matrix[0][1] to init_probs[“G”].values # prob of going from Init to G state
-    
-    returns (virtebri_matrix)
-#end init_viterbi()
+class HiddenState:	# A single state that can be stored in an HMM
+	DATA:
+		Name: string representing state name
+		Initial Prob: p(this state) at observation 0
+		Emissions_Dict: 
+		Transition_To (optional): a dict of ("state2", probability) pairs representing out-bound state transitions
+	METHODS:
+		init(name, init_prob, emission_probs):
+			Object constructor; saves arguments to internal data.
+			Initialize Transition_To as an empty dict, to allow for creation of "dead end states"
+		set_transition(transition_dict):
+			Load in a transition dictionary, and update Transition_To.
+		emit():
+			Randomly generate an emission from this state weighted by emission_probs 
+			This is basic functionality for an HMM state; not strictly needed for Viterbi, but useful
 ```
 
-## "do/make/fill-in" the viterbi table
+## Project08.rmd
+```
+import markov_models
 
-```{}
-Function “make_viterbi”/“do_viterbi” (virtebri_matrix: array 2D array of Virtebri class,
-obs string,
-trans_probs [Dict],
-emit_probs [Dict]
-)-> virtebri_matrix (2D array of Viterbi class?)
-    Start stepping through obs, one character at a time...
-        1. Calculate the prob of the most likely path leading to this state
-        2. Consider all possible prior states, 
-            a. calcuate the prob of transitioning from each previous state to the current state, and 
-            b. multipliews it by the stored probability of the best path to that prior state.
-        3. a The (maximum/minimum (etc)) of these values is selected 
-           b. and stored in the Viterbi table
-           c. also stores a "backpointer" (ref to the prior state, the maximum probability) to reconstruct the path later.
-           
-           To start P(initial_state)*b_1(o_1)
-           
-returns virterbi_table
-#end make_viterbi()
+# Initialize a markov model with provided data
+init_probs = {"I": 0.2, "G": 0.8}
+trans_probs = {
+    "I": {"I": 0.7, "G": 0.3},
+    "G": {"I": 0.1, "G": 0.9}}
+emit_probs = {
+    "I": {"A": 0.1, "C": 0.4, "G": 0.4, "T": 0.1},
+    "G": {"A": 0.3, "C": 0.2, "G": 0.2, "T": 0.3}}
+
+hmm = new HMM(init_probs, trans_probs, emit_probs)
+
+hmm.run_viterbi(list of observations)
 ```
 
-## Trace back the table "creating the ouptut string"; REVERSE IT! 
-```
-Function “Traceback viterbi”(virtebri_matrix
-)-> opt_path: ?string
+## For our project Style Guide
+See notes/style.Rmd
 
-    read back through virtebri_matrix; translating into ouput string
-    reverse it
-    return it
-    
-#end traceback_viterbi()
-```
-
-## (optional) Visualize_Viterbi; create some sort of viz
-
-```{}
-Function “visualize_Viterbi optimal path”(opt_path ?string
-) 
-        for example ACTGAAATTTCCCGGG
-                     ###  ####
-
-#end visualize_Viterbi()
-```
-
-## Function that kicks everything off
-```{}
-Function “run_viterbi” given sequence, 
-    init_probs [Dicts], trans_probs[Dicts], emit_probs[Dict]
-) returns optimal_viterbi_path ?string
-	
-	Ok = Confirm_parameter_consistency(obs,init_probs,trans_probs,emit_probs)
-
-	If (ok)
-	     Vertibri_matrix = Init_viterbi (obs, init_probs)
-         vertibri_matrix = do_vertibri(vertibri_matrix,obs,trans_probs,emit_probs)
-	     Return(Traceback_viterbi(vertibri_matrix,obs))
-    Else 
-        print error message parameters, etc, run_viterbi function exited
-        Return(“”)
- #end func run_viterbi
-
-#Main()
-opt_path = Run_viterbi(obs,init_probs,trans_probs,emit_probs) 
-If not (opt_path == 0)
-
-Vis_opt_path(opt_path)
-#end Main()
-```
-Our initial Class structure(s)
-```{}
-class HiddenState:
-    name = obs
-    init_probs = init_prob
-    emission_probs = emissions_dict
-    set_transitions(self, transitions_dict)
-       out_state_probs = transision_dict
-    emit()
-        returns random emission prob.
-
-class HMM:
-    emissions....
-    self.states = [] (will be list of HiddenState objs)
-    state_names = emit_probs.keys)
-    __init__(init_probs,trans_probs,emit_probs)
-    __traceback_viterbi__(traceback_pos,backptrs)
-    __fill_viterbi_matrix__(obs)
-    run_viterbi(obs)
-```
 
 # Successes
 Jacque learned how to add a new branch to a prior repo fork on github.
