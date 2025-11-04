@@ -1,5 +1,5 @@
 # BINF6250F25
-# Module 08 HMM: Viteri
+# Module 08 HMM: Viterbi
 
 #Setup
 BINF6250; Fall 2025
@@ -80,11 +80,11 @@ emit_probs = {
 
 # Further Discussion/information on Viterbi
 
-See virterbi_info.Rmd
+See notes/virterbi_info.Rmd
 
 # Style Guide
 
-See style.Rmd
+See notes/style.Rmd
 
 # Pseudocode
 ## Class

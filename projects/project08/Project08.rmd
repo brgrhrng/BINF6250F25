@@ -21,8 +21,11 @@ import markov_models as mm # module we created
 ```
 
 ```{python load-data}
+TESTING = False
 # Example data provided in project description
 obs = "GGCACTGAA"
+obs2 = "GGCCGGCCGGCCGG"
+obs3 = "GGCCGGACT"
 
 init_probs = {
     "I": 0.2, "G": 0.8}
@@ -34,18 +37,27 @@ emit_probs = {
 
 test_HMM = mm.HMM(init_probs, trans_probs, emit_probs)
 
-
-print("--------------")
-for i,state in enumerate(test_HMM.states):
-  print(f"STATE {i}: \"{state.name}\"")
-  print(f"Init_p: {state.init_prob}")
-  print(f"emit probs:     {state.emission_probs}")
-  print(f"out_probs: {state.transition_to}")
-  print("\n")
+if TESTING:
+  print("--------------")
+  for i,state in enumerate(test_HMM.states):
+    print(f"STATE {i}: \"{state.name}\"")
+    print(f"Init_p: {state.init_prob}")
+    print(f"emit probs:     {state.emission_probs}")
+    print(f"out_probs: {state.transition_to}")
+    print("\n")
 
 test_path = test_HMM.run_viterbi(obs)
 
 print(obs)
 print(test_path)
 
+# GGCACTGAA
+# returns: 
+# ['G', 'G', 'G', 'G', 'G', 'G', 'G', 'G']
+#
+# GGCCGGCCGGCCGG
+# returns: ['I', 'I', 'I', 'I', 'I', 'I', 'I', 'I', 'I', 'I', 'I', 'I', 'I']
+#
+# obs = "GGCCGGACT"
+# returns: ['I', 'I', 'I', 'I', 'I', 'G', 'G', 'G']
 ```

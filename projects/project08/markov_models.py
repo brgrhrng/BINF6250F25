@@ -69,7 +69,8 @@ class HMM:
     
     state_names = emit_probs.keys()
     for state_name in state_names:
-      new_state = HiddenState(state_name, init_prob = init_probs[state_name], emissions_dict = emit_probs[state_name])
+      new_state = HiddenState(state_name, init_prob = init_probs[state_name], 
+                              emissions_dict = emit_probs[state_name])
       if state_name in trans_probs.keys():
         new_state.set_transitions(trans_probs[state_name])
       self.states.append(new_state)
@@ -98,7 +99,7 @@ class HMM:
     return traceback
 
     
-  def __fill_viterbi_matrix__(self, observations, log_values = True):
+  def __fill_viterbi_matrix__(self, observations, log_values = False):
     '''Creates a Viterbi matrix and backpointers
         1. Initialize the viterbi and traceback matrices
         2. populate the matrices one by one.
@@ -128,10 +129,8 @@ class HMM:
       else:
         v_matrix[state_i,0] = state.init_prob * first_emission_prob
       backpointers[state_i,0] = -1 # no prior column, so set pointer to -1
-    
-    if TESTING: print(f"v_matrix {v_matrix}")
-    if TESTING: print(observations)
-    
+
+
     # Now we can go column by column, filling in each cell in our matrices.
     # For each possible path into a cell:
     #   p_total = p(path into last cell) *
@@ -145,8 +144,9 @@ class HMM:
       
       for state_i, current_state in enumerate(self.states):
         trans_here_probs = [prior_state.transition_to[current_state.name] for prior_state in self.states] # vector
+      
         p_current_emission = current_state.emission_probs[observation] # scalar
-        
+      
         # Build a vector of probabilities for each possible path
         if log_values:
           total_path_probs = prior_path_probs
@@ -154,12 +154,12 @@ class HMM:
           total_path_probs += np.log10(p_current_emission)
         else:
           total_path_probs = prior_path_probs * trans_here_probs * p_current_emission
-          
+        
         # Save the best path.
-        v_matrix[state_i, obs_i] = max(total_path_probs)
+        v_matrix[state_i, obs_i] = max(total_path_probs).copy()
         backpointers[state_i, obs_i] = np.argmax(total_path_probs)
-    
-    if TESTING: print(f"v_matrix {v_matrix} backpointers {backpointers}")    
+  
+    if TESTING: print(f"backptrs: {backpointers}, v_matrix: {v_matrix}")
     return(v_matrix, backpointers)
   
   
@@ -174,39 +174,11 @@ class HMM:
     tb_obs_i, state_i = traceback_pos
     tb_obs_i, state_i = int(tb_obs_i), int(state_i)
     
+    if TESTING: print(f"traceback_pos, backptrs: {traceback_pos}, {backptrs}")
     state_names = []
     for obs_i in range(tb_obs_i, 0, -1): # loop backwards through observations
       state_names.append(self.states[state_i].name) # Save current state name
       state_i = int(backptrs[state_i, obs_i]) # update index to pointer
     
-    state_names = reversed(state_names)
-    return state_names
+    return state_names[::-1] # return the state_names list in reverse
   
-
-TESTING = False
-
-if TESTING:    # this entire block is commented out when TESTING= FALSE
-# Example data provided in project description
-  obs = "GGCACTGAA"
-#obs = "ATGCGCGGCTTAGCGCGGATCGCGCTTAGCGCG"
-
-  init_probs = {
-      "I": 0.2, "G": 0.8}
-  trans_probs = {
-      "I": {"I": 0.7, "G": 0.3}, "G": {"I": 0.1, "G": 0.9}}
-  emit_probs = {
-      "I": {"A": 0.1, "C": 0.4, "G": 0.4, "T": 0.1},
-      "G": {"A": 0.3, "C": 0.2, "G": 0.2, "T": 0.3}}
-
-  test_HMM = HMM(init_probs, trans_probs, emit_probs)
-
-  print("--------------")
-  for i,state in enumerate(test_HMM.states):
-    print(f"STATE {i}: \"{state.name}\"")
-    print(f"Init_p: {state.init_prob}")
-    print(f"emit probs:     {state.emission_probs}")
-    print(f"out_probs: {state.transition_to}")
-    print("\n")
-
-  test_HMM.run_viterbi(obs)
-# End TESTING if statement.
