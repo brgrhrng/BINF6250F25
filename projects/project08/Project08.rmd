@@ -60,4 +60,4 @@ print(test_path)
 #
 # obs = "GGCCGGACT"
 # returns: ['I', 'I', 'I', 'I', 'I', 'G', 'G', 'G']
-
+```
