@@ -35,14 +35,14 @@ class HiddenState:
     
     self.emission_probs = emissions_dict
     
-    self.out_state_probs = {} # initial empty as a deadend
+    self.transition_to = {} # initial empty as a deadend
     
     
   def set_transitions(self, transitions_dict):
     """
     Update outgoing edges to match provided transitions_dict.
     """
-    self.out_state_probs = transitions_dict
+    self.transition_to = transitions_dict
   
   
   def emit(self):
@@ -83,9 +83,9 @@ class HMM:
       self.states.append(new_state)
       
   
-  def __traceback_viterbi__(self,traceback_pos,backptrs):
-    ''' private function that traces back the backpointers 
-        creating the hidden states list of our viterbi matrix.
+  def __traceback_viterbi__(self, traceback_pos, backptrs):
+    ''' private function that traces back the backpointers, 
+        obtaining the most probable sequence of states up to traceback_pos
     
     args: 
       traceback_pos: pos to start traceback of backptrs.
@@ -93,18 +93,18 @@ class HMM:
       
     returns:  list of strings that show the hidden states
     '''
-    i, j =traceback_pos
+    tb_obs_i, state_i = traceback_pos
+    tb_obs_i, state_i = int(tb_obs_i), int(state_i)
+    
     state_names = []
     
-    print(traceback_pos,backptrs)
+    for obs_i in range(tb_obs_i, 0, -1): # loop backwards through observations
+      state_names.append(self.states[state_i].name) # Save current state name
+      state_i = int(backptrs[state_i, obs_i]) # update index to pointer
     
-    while i >= 0:
-      state_names.append(self.states[j].name)
-      new_pos = backptrs[j][i] #numpy refers to rows,col
-      i = new_pos[0]
-      j = new_pos[1]
+    state_names = reversed(state_names)
   
-    return(reversed(state_names))
+    return state_names
     
     
   def run_viterbi(self, observations):
@@ -122,14 +122,12 @@ class HMM:
     if type(observations) == str:
       observations = [char for char in observations]
     
-    #if not isinstance(observations, list):
     if not type(observations) is list:
       raise Exception("\'observations\' must be a list or string.")
-      
+    
     v_matrix, backptrs = self.__fill_viterbi_matrix__(observations)
     
     ypos = np.argmax(v_matrix[:,-1])
-    
     xpos = v_matrix.shape[1]-1
     
     print(v_matrix.shape, xpos, ypos)
@@ -141,68 +139,79 @@ class HMM:
     print (v_matrix,backptrs)
     print (traceback)
 
-  def __fill_viterbi_matrix__(self, observations):
+  def __fill_viterbi_matrix__(self, observations, log_values = True):
     '''Creates a Viterbi matrix and backpointers
         1. Initialize the viterbi and traceback matrices
         2. populate the matrices one by one.
     
     args: 
-      observations: list of strings (could be objects) that represent our states
-      
-      v_matrix:  size of hidden states and positions of observation states 
-      
+      observations: a 1d list where each item represents one observation
+      log_values (optional):  set to False to return flat p-values.
+                              This will result in underflow errors!
     Returns:
-      v_matrix: matrix with floating point number representing probabilities.
+      v_matrix: matrix with floating point number representing log-probabilities
       backpointers: to the preceeding grid cell at each possition
       
     '''
-   
-    #create the matrix that is 
-    #    rows - number_of_hidden_states rows; 
-    #    cols - length_of_obs_list of viterbi_matrix (v_matrix)
-    num_rows = len(self.states)
-    num_cols = len(observations)
+    # Initialize output matrices
+    n_cols = len(observations) # Columns correspond to observations, in order
+    n_rows = len(self.states) # Each row corresponds to a possible hidden state
+    v_matrix = np.zeros((n_rows, n_cols))
+    backpointers = np.empty((n_rows, n_cols))
     
-    # initiallize a numpy array; then set the initial probabilities to it
-    v_matrix = np.zeros((num_rows,num_cols))
-    backpointers = [] # 2D matrix of tuples; same size as v_matrix
-  
+    # Fill in the first column of our matrix.
+    # At observation 0, the probability of being in a particular state is:
+    #   p = p_initial(state) * p(emitting observation 0 in this state)
     first_emission = observations[0]
-    for i,state in enumerate(self.states):
+    for state_i, state in enumerate(self.states):
       first_emission_prob = state.emission_probs[first_emission]
-      v_matrix[i,0] = state.init_prob*first_emission_prob
-    # Now that we are initialized, we need to fill the remainder of the matrix
-    print(f"v_matrix {v_matrix}")
-    
-    for obs_i in range(1,num_cols):   # go through obs string one at a time
-                                  # index 0 was set above.
-      obs_state = observations[obs_i]
-
-      for state_i,hidden_state in enumerate(self.states):  # states found in 
-        emission = obs_state 
-        emission_prob = hidden_state.emission_probs[emission]
-        val_prob=0     # temp value
-        max_local_prob = 0 # reset local max
-
-        for prior_i, prior_state in enumerate(self.states):
-        #  if (v_matrix[state_i,prior_i] == 0):
-        #    prior_state_prob = 1
-        #  else:
-          prior_state_prob = v_matrix[state_i,prior_i]    
-            
-          transit_prob = prior_state.out_state_probs[hidden_state.name] 
-    
-          val_prob = prior_state_prob*transit_prob*emission_prob # prior_prob*A(i,j)*B(j)
-          if (max_local_prob) == 0 or (max_local_prob > val_prob):
-            max_local_prob = val_prob
-            max_local_index = prior_i # this is for possible use as back pointer
-    # when we end the loop max_current_local and max_current_state/.
-        v_matrix[state_i,obs_i] = max_local_prob
       
+      if log_values:
+        v_matrix[state_i,0] = np.log10(state.init_prob) + np.log10(first_emission_prob)
+      else:
+        v_matrix[state_i,0] = state.init_prob * first_emission_prob
+      
+      backpointers[state_i,0] = -1 # no prior column, so set pointer to -1
+      
+    print(f"v_matrix {v_matrix}")
+    print(observations)
+    
+    # Now we can go column by column, filling in each cell in our matrices.
+    # For each possible path into a cell:
+    
+    #   p_total = p(path into last cell) *
+    #             p(transitioning from last cell state to current cell state) *
+    #             p(current state emitting current observation)
+    
+    # We save p_total for the most probable path into v_matrix,
+    # and the index of the prior cell in this path (within its column) to
+    # backpointers.
+    for obs_i, observation in enumerate(observations[1:], start=1): # skip col 0
+      
+      prior_path_probs = v_matrix[:,obs_i-1] # vector representing last column in v_matrix
+      
+      for state_i, current_state in enumerate(self.states):
+        trans_here_probs = [prior_state.transition_to[current_state.name] for prior_state in self.states]
+        p_current_emission = current_state.emission_probs[observation]
+        
+        # Build a vector of probabilities for each possible path
+        if log_values:
+          total_path_probs = prior_path_probs
+          total_path_probs += np.log10(trans_here_probs)
+          total_path_probs += np.log10(p_current_emission) # adds a scalar value
+        else:
+          total_path_probs = prior_path_probs * trans_here_probs * p_current_emission
+          
+        # Save the best path.
+        max_local_index = np.argmax(total_path_probs)
+        max_local_prob = max(total_path_probs)
+        
+        v_matrix[state_i, obs_i] = max_local_prob
+        backpointers[state_i, obs_i] = max_local_index
     
     print(f"v_matrix {v_matrix} backpointers {backpointers}")
     
-    return(v_matrix,np.array(backpointers))
+    return(v_matrix, backpointers)
   
 
 # Example data provided in project description
@@ -224,7 +233,7 @@ for i,state in enumerate(test_HMM.states):
   print(f"STATE {i}: \"{state.name}\"")
   print(f"Init_p: {state.init_prob}")
   print(f"emit probs:     {state.emission_probs}")
-  print(f"out_probs: {state.out_state_probs}")
+  print(f"out_probs: {state.transition_to}")
   print("\n")
 
 test_HMM.run_viterbi(obs)
