@@ -71,7 +71,6 @@ class HMM:
       new_state = HiddenState(state_name, init_prob = init_probs[state_name], emissions_dict = emit_probs[state_name])
       if state_name in trans_probs.keys():
         new_state.set_transitions(trans_probs[state_name])
-        
       self.states.append(new_state)
       
       
@@ -117,30 +116,26 @@ class HMM:
     v_matrix = np.zeros((n_rows, n_cols))
     backpointers = np.empty((n_rows, n_cols))
     
-    # Fill in the first column of our matrix.
+    # Fill in the first column of our matrices
     # At observation 0, the probability of being in a particular state is:
     #   p = p_initial(state) * p(emitting observation 0 in this state)
     first_emission = observations[0]
     for state_i, state in enumerate(self.states):
       first_emission_prob = state.emission_probs[first_emission]
-      
       if log_values:
         v_matrix[state_i,0] = np.log10(state.init_prob) + np.log10(first_emission_prob)
       else:
         v_matrix[state_i,0] = state.init_prob * first_emission_prob
-      
       backpointers[state_i,0] = -1 # no prior column, so set pointer to -1
-      
+    
     print(f"v_matrix {v_matrix}")
     print(observations)
     
     # Now we can go column by column, filling in each cell in our matrices.
     # For each possible path into a cell:
-    
     #   p_total = p(path into last cell) *
     #             p(transitioning from last cell state to current cell state) *
     #             p(current state emitting current observation)
-    
     # We save p_total for the most probable path into v_matrix,
     # and the index of the prior cell in this path (within its column) to
     # backpointers.
@@ -148,26 +143,22 @@ class HMM:
       prior_path_probs = v_matrix[:,obs_i-1] # vector representing last column in v_matrix
       
       for state_i, current_state in enumerate(self.states):
-        trans_here_probs = [prior_state.transition_to[current_state.name] for prior_state in self.states]
-        p_current_emission = current_state.emission_probs[observation]
+        trans_here_probs = [prior_state.transition_to[current_state.name] for prior_state in self.states] # vector
+        p_current_emission = current_state.emission_probs[observation] # scalar
         
         # Build a vector of probabilities for each possible path
         if log_values:
           total_path_probs = prior_path_probs
           total_path_probs += np.log10(trans_here_probs)
-          total_path_probs += np.log10(p_current_emission) # scalar value
+          total_path_probs += np.log10(p_current_emission)
         else:
           total_path_probs = prior_path_probs * trans_here_probs * p_current_emission
           
         # Save the best path.
-        max_local_index = np.argmax(total_path_probs)
-        max_local_prob = max(total_path_probs)
-        
-        v_matrix[state_i, obs_i] = max_local_prob
-        backpointers[state_i, obs_i] = max_local_index
+        v_matrix[state_i, obs_i] = max(total_path_probs)
+        backpointers[state_i, obs_i] = np.argmax(total_path_probs)
     
-    print(f"v_matrix {v_matrix} backpointers {backpointers}")
-    
+    print(f"v_matrix {v_matrix} backpointers {backpointers}")    
     return(v_matrix, backpointers)
   
   
