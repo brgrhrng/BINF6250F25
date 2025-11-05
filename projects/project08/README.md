@@ -105,7 +105,6 @@ Overall:
 * Successfully designed and implemented an HMM object, including all data and methods from our initial project schematic.
 * Implemented viterbi using a dynamic programming matrix, per the project description.
 * Used a mix of pair programming, and asynchronous development + reviews of each others code to create a project we are both proud of.
-* We did not struggle do find libraries to do what we needed; mostly our skills were just "right there", thanks to prior assignments/projects
   
 Jacque:
 * learned how to add a new branch to a prior repo fork on github.
@@ -124,8 +123,8 @@ Overall:
   * For now, log_values defaults to False, so our working flat-probability implementation is used. But we would really like to fix our log implementation and make it True by default. 
 
 Jacque:
-* Continue to find it difficult to visualize classes/objects, and items/methods that
-are private/hidden, Brooks helped.  A lot.
+* continues to find it difficult to visualize classes/objects, and items/methods that
+are private/hidden, but Brooks helped.  A lot.
 
 Brooks:
 * indexing. oh lord, indexing. So much of our debugging effort went towards figuring out why we weren't slices our arrays properly--and trying to verbally describe and pin down columns/rows/horizontal/vertical--and keep them straight in our heads--was a major pain. However, iterating through this struggle eventually resulted in some really solid and explicit variable names.
@@ -137,7 +136,7 @@ This project was in some ways a pain to implement, but it also presented a fairl
 We designed our classes with code readability and modularity in mind--my hope is that this will make expanding upon them in the next two projects easier. We had to resist the urge to indulge too much in premature optimization, but we should be in a good place if Marcus asks us (for example) to make our HMMs trainable instead of mandating hardcoded probabilities. I'm exciting to see what curveballs he throws us.
 
 ## Other member (Jacque)
-The algorithm is not the problem; getting it implemented is the problems.  Arrays of arrays of arrays of arrays of arrays (okay lists of lists of dicts).  Indexing gets complicated.  Our focus, as on our last assignment, is very different, but complimentary, allowing us to get all the coding done, and make sure the details are smoothed over, without getting bogged down in the details of either.
+The algorithm is not the problem; getting it implemented is the problem.  Arrays of arrays of arrays of arrays of arrays (okay lists of lists of dicts).  Indexing gets complicated.  Our focus on the module/problem, as on our last assignment together, is very different, but complimentary, allowing us to get the coding done, and make sure the details are smoothed over, without getting bogged down in the details of either.
 
 # Generative AI Appendix and references
 Discussions with GPT-5 to cement my (Jacque’s) understanding of Virterbi equations relationships to the data that we will be given, on-line through outlier.ai, October 30, 2025.
