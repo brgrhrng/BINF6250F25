@@ -105,8 +105,8 @@ Overall:
 * Successfully designed and implemented an HMM object, including all data and methods from our initial project schematic.
 * Implemented viterbi using a dynamic programming matrix, per the project description.
 * Used a mix of pair programming, and asynchronous development + reviews of each others code to create a project we are both proud of.
-* We did not struggle do find libraries to do what we needed; mostly our skills were just "right there", thanks to prior assignments/projects.
-
+* We did not struggle do find libraries to do what we needed; mostly our skills were just "right there", thanks to prior assignments/projects
+  
 Jacque:
 * learned how to add a new branch to a prior repo fork on github.
 * Wrangled a multi for-loop extravaganza into submission.
@@ -118,10 +118,10 @@ Brooks:
 
 # Struggles
 Overall:
-* Indexing into multiple arrays at the same time, during multiple loops, remembering what 
-* order the indexes need to be in for each structure.
-* Trying to remain flexible with class structure/infrastructure when we're not quite sure
-what the next steps are going to be.
+* Indexing into multiple arrays at the same time, during multiple loops, remembering what order the indexes need to be in for each structure.
+* Trying to remain flexible with class structure/infrastructure when we're not quite sure what the next steps are going to be.
+* LOG-PROBABILITIES: We implemented a flag to store/calculate our Viterbi probabilites in log10-space internally, to avoid underflow errors in long observation seqs. While our math *looks* right at every step we've examined, the end result is an incorrect path.
+  * For now, log_values defaults to False, so our working flat-probability implementation is used. But we would really like to fix our log implementation and make it True by default. 
 
 Jacque:
 * Continue to find it difficult to visualize classes/objects, and items/methods that
