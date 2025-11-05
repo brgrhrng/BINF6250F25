@@ -105,7 +105,7 @@ Overall:
 * Successfully designed and implemented an HMM object, including all data and methods from our initial project schematic.
 * Implemented viterbi using a dynamic programming matrix, per the project description.
 * Used a mix of pair programming, and asynchronous development + reviews of each others code to create a project we are both proud of.
-We did not struggle do find libraries to do what we needed; mostly our skills were just "right there", thanks to prior assignments/projects.
+* We did not struggle do find libraries to do what we needed; mostly our skills were just "right there", thanks to prior assignments/projects.
 
 Jacque:
 * learned how to add a new branch to a prior repo fork on github.
@@ -144,8 +144,12 @@ allowing us to get all the coding done, and make sure the details are smoothed o
 without getting bogged down in the details of either.
 
 # Generative AI Appendix and references
-# Cite:
-https://www.youtube.com/watch?v=6JVqutwtzmo; Viterbi Algorithm; Keith Chugg (USC) ; posted March 9, 2017
-https://www.youtube.com/watch?v=s9dU3sFeE40; Hidden Markov Models 11: the Viterbi algorithm, Donald Patterson *Westmont College”, posted April 7, 2020
 Discussions with GPT-5 to cement my (Jacque’s) understanding of Virterbi equations relationships to the data that we will be given, on-line through outlier.ai, October 30, 2025.
+
 Discussions with Claude.ai again to cement my (Jacque’s) understanding of Virterbi equations and relationships, on-line through outlier.ai, October 30, 2025.
+
+## Other sources:
+https://www.youtube.com/watch?v=6JVqutwtzmo; Viterbi Algorithm; Keith Chugg (USC) ; posted March 9, 2017
+
+https://www.youtube.com/watch?v=s9dU3sFeE40; Hidden Markov Models 11: the Viterbi algorithm, Donald Patterson *Westmont College”, posted April 7, 2020
+
