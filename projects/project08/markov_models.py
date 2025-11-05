@@ -99,7 +99,7 @@ class HMM:
     return traceback
 
     
-  def __fill_viterbi_matrix__(self, observations, log_values = False):
+  def __fill_viterbi_matrix__(self, observations, log_values = True):
     '''Creates a Viterbi matrix and backpointers
         1. Initialize the viterbi and traceback matrices
         2. populate the matrices one by one.
@@ -149,7 +149,7 @@ class HMM:
       
         # Build a vector of probabilities for each possible path
         if log_values:
-          total_path_probs = prior_path_probs
+          total_path_probs = prior_path_probs.copy()
           total_path_probs += np.log10(trans_here_probs)
           total_path_probs += np.log10(p_current_emission)
         else:
@@ -181,4 +181,3 @@ class HMM:
       state_i = int(backptrs[state_i, obs_i]) # update index to pointer
     
     return state_names[::-1] # return the state_names list in reverse
-  
