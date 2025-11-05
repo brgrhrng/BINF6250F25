@@ -113,7 +113,7 @@ Jacque:
 
 Brooks:
 * became a lot more comfortable working with numpy arrays
-* used vector operations to simplify the looping inside fill_viterbi(). Theoretically, this should be faster--but more importantly it *looks* way more like the real-world equations, which really helps with code readability in my opinion.
+* used vector operations to simplify the looping inside fill_viterbi(). Theoretically, this should be faster--but more importantly it *looks* much more like the viterbi equations, which really improves code readability.
 
 
 # Struggles
@@ -132,16 +132,12 @@ Brooks:
 
 # Personal Reflections
 ## Group Leader (Brooks)
-This project was in some ways a pain to implement, but it also presented a fairly interesting series of puzzles to solve. Bouncing ideas back and forth with Jacque was incredibly helpful. In theory I think either of us could have struggled through the code on our own, but by essentially peer reviewing each others' work we ended up with a presumably stronger end product. 
+This project was in some ways a pain to implement, but it also presented a fairly interesting series of puzzles to solve. Bouncing ideas back and forth with Jacque was incredibly helpful. In theory I think either of us could have struggled through the code on our own, but by essentially peer reviewing each others' work we ended up with a stronger end product. 
 
 We designed our classes with code readability and modularity in mind--my hope is that this will make expanding upon them in the next two projects easier. We had to resist the urge to indulge too much in premature optimization, but we should be in a good place if Marcus asks us (for example) to make our HMMs trainable instead of mandating hardcoded probabilities. I'm exciting to see what curveballs he throws us.
 
 ## Other member (Jacque)
-Alogothim is not the problem, getting it implemented is the problems.  Arrays of 
-arrays of arrays of arrays of arrays (okay lists of lists of dicts).  Indexing gets 
-complicated.  Our focus, as on our last assignment, is very different, but complimentary,
-allowing us to get all the coding done, and make sure the details are smoothed over, 
-without getting bogged down in the details of either.
+The algorithm is not the problem; getting it implemented is the problems.  Arrays of arrays of arrays of arrays of arrays (okay lists of lists of dicts).  Indexing gets complicated.  Our focus, as on our last assignment, is very different, but complimentary, allowing us to get all the coding done, and make sure the details are smoothed over, without getting bogged down in the details of either.
 
 # Generative AI Appendix and references
 Discussions with GPT-5 to cement my (Jacque’s) understanding of Virterbi equations relationships to the data that we will be given, on-line through outlier.ai, October 30, 2025.
