@@ -101,29 +101,42 @@ See notes/style.Rmd
 
 
 # Successes
-Jacque learned how to add a new branch to a prior repo fork on github.
+Overall:
+* Successfully designed and implemented an HMM object, including all data and methods from our initial project schematic.
+* Implemented viterbi using a dynamic programming matrix, per the project description.
+* Used a mix of pair programming, and asynchronous development + reviews of each others code to create a project we are both proud of.
+We did not struggle do find libraries to do what we needed; mostly our skills were just "right there", thanks to prior assignments/projects.
 
-Wrangled a multi for-loop extravaganza into submission.
+Jacque:
+* learned how to add a new branch to a prior repo fork on github.
+* Wrangled a multi for-loop extravaganza into submission.
 
-Did not struggle do find libraries to do what we needed, mostly our skills
-were just "right there", thanks to prior assignments/projects.
+Brooks:
+* became a lot more comfortable working with numpy arrays
+* used vector operations to simplify the looping inside fill_viterbi(). Theoretically, this should be faster--but more importantly it *looks* way more like the real-world equations, which really helps with code readability in my opinion.
 
 
 # Struggles
-Indexing into multiple arrays at the same time, during multiple loops, remembering what 
-order the indexes need to be in for each structure.
-
-Trying to remain flexible with class structure/infrastructure when we're not quite sure
+Overall:
+* Indexing into multiple arrays at the same time, during multiple loops, remembering what 
+* order the indexes need to be in for each structure.
+* Trying to remain flexible with class structure/infrastructure when we're not quite sure
 what the next steps are going to be.
 
-(Jacque) Continue to find it difficult to visualize classes/objects, and items/methods that
+Jacque:
+* Continue to find it difficult to visualize classes/objects, and items/methods that
 are private/hidden, Brooks helped.  A lot.
 
-# Personal Reflections
-## Group Leader
-Group leader's reflection on the project
+Brooks:
+* indexing. oh lord, indexing. So much of our debugging effort went towards figuring out why we weren't slices our arrays properly--and trying to verbally describe and pin down columns/rows/horizontal/vertical--and keep them straight in our heads--was a major pain. However, iterating through this struggle eventually resulted in some really solid and explicit variable names.
 
-## Other member
+# Personal Reflections
+## Group Leader (Brooks)
+This project was in some ways a pain to implement, but it also presented a fairly interesting series of puzzles to solve. Bouncing ideas back and forth with Jacque was incredibly helpful. In theory I think either of us could have struggled through the code on our own, but by essentially peer reviewing each others' work we ended up with a presumably stronger end product. 
+
+We designed our classes with code readability and modularity in mind--my hope is that this will make expanding upon them in the next two projects easier. We had to resist the urge to indulge too much in premature optimization, but we should be in a good place if Marcus asks us (for example) to make our HMMs trainable instead of mandating hardcoded probabilities. I'm exciting to see what curveballs he throws us.
+
+## Other member (Jacque)
 Alogothim is not the problem, getting it implemented is the problems.  Arrays of 
 arrays of arrays of arrays of arrays (okay lists of lists of dicts).  Indexing gets 
 complicated.  Our focus, as on our last assignment, is very different, but complimentary,
