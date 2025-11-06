@@ -1,0 +1,115 @@
+---
+title: "viterbi_info"
+output: html_document
+---
+
+# Information given to us
+
+##Given examples:
+```{}
+obs=”GGGCACTGAA" # example obs sequence
+init_probs = {	# example initial probabilities (probability of starting in each state
+               “I”:0.2,
+               “G”:0.8
+}
+trans_probs= { # example transition probabilities (probability of moving from one state to another
+    "I": {"I": 0.7, "G": 0.3},
+    "G": {"I": 0.1, "G": 0.9}
+}
+emit_probs={ # Example emission probabilities (probability of observing a symbol in a given state)
+       “I”: {"A": 0.1, "C": 0.4, "G": 0.4, "T": 0.1},
+       “G”: {"A": 0.3, "C": 0.2, "G": 0.2, "T": 0.3}
+}
+```
+
+##Initialization for virterbi
+* Setup Prob matrix using initial probabilities and the first observation
+        These were given to us
+** Initialize traceback matrix for path reconstruction.
+* Recursion 
+** For each position and possible state, calculate the maximum probability 
+** Store both probabilities (just max, or states and max?) and traceback pointers
+** Apply transition and emission probabilities at each step 
+* Termination
+** Identify the final state with the highest probability
+** Traceback through the matrix to reconstruct the optimal path.
+
+
+# Writing up my understanding of the problem:
+
+## We need to know these things:
+
+   obs = observed state = list of char/string 'ACGTAATTCCGG'
+   
+   number_of_possible_hidden_states = "I" "G" = 2
+   
+   numer_of_observed_states = "A" "C" "G" "T" = 4 (the string alphabet if you will)
+   
+   init_probs = "pi list" list of probs = list of size number_of_possible_hidden_states (2) of Dicts with hidden state and prob of transitioning from initial state to that hidden state
+   
+   trans_probs = "A matrix" matrix of probabalities of transitioning from one state into another = lis of size number_of_hidden_states (2) that contain dictionaries for moving from one state to another ; sum of probabilities should be 1.0
+   
+   emit_probs = "B matrix" matrix of probabilities of number_of_observed_states x number_of_observed_states; a list of dictionaries that contain the emisions list with probabilities; if it isn't in the "internal" emision dictionary, then values should be 0; again sum of each level should sum to 1.0.
+   
+Time →      t=1          t=2          t=3          t=4
+           -------      -------      -------      -------
+Hidden
+states:     S1  ——→——>   S2  ——→——>   S3  ——→——>   S4
+             |             |             |             |
+             |             |             |             |
+             v             v             v             v
+Observations: O1           O2            O3            O4
+
+horizontal arrows hidden state transitions
+    a_ij = P(q_t = s_j given q_t-1 = s_i) # how likely we move from Si to Sj
+
+vertical arrows emissions; or the observed state at this point
+    b_j(o_t) = P(o_t given q_t = s_j)*b_j(o_t)=P(o_t given q_t = s_j)
+    
+    Each hidden state "emits" an obs according to it's prob dist
+               
+Hidden States (S1,S2,...) are not directly observable
+Observations (O1,O2, ...) are measurable/observable
+
+Viterbi algorithm tries to uncover the most likely path through the hidden states (S1 -> S2 -> S3 -> ...) (Ex: "IIGGII") that could have produced the observed sequence (O1 -> O2 -> O3 -> ...) (Ex: given DNA string)
+
+Example from above:
+obs=”GGGCACTGAA" # example obs sequence; each character rep hidden state
+example of output string/state or S1S2S3S4 would be IIGG
+
+init_probs = {“I”:0.2,    # pi = [S1(I)=0.2,S1(G)=0.8]
+              “G”:0.8}
+
+                                           I      G 
+trans_probs= {"I": {"I": 0.7,    # A I  |II=0.7 IG=0.3|
+                    "G": 0.3},   #   G  |GI=0.1 GG=0.9|
+              "G": {"I": 0.1, 
+                    "G": 0.9}}
+                                           A      C      G      T
+emit_probs={ “I”: {"A": 0.1,     # B  I |IA=0.1 IC=0.4 IG=0.4 IT=0.1|
+                   "C": 0.4,          G |GA=0.3 IC=0.2 IG=0.2 IT=0.3|
+                   "G": 0.4, 
+                   "T": 0.1},
+             “G”: {"A": 0.3, 
+                   "C": 0.2, 
+                   "G": 0.2, 
+                   "T": 0.3}}
+                   
+    lambda = (A,B,pi)
+
+N = Number of hidden states (2)
+M = Number of possibles obs symbols (4)
+T = length of the obs sequence (10)
+a_ij = Transition prob from State_i to state_j P(S_i-->S_j)
+b_j(o_t) = Emission prob of observing o_t in state Sj
+pi_j = Initial prob of state S1 (Ex: "I" or "G")
+delta_t(j) = max_i (prob of any path to state S_j at time t)
+phi_t(j) = backpointer: previous state index that gave delta_t(j)
+obs_t = observation at time t
+
+    Prob(ij) = A(i,j)*B(j) 
+
+to prevent numerical underflow:
+    log(delta_t(j)) = max_i[log(delta_t-1(i)+log(a_ij)]
+                         + log(b_j(o_t))
+                         

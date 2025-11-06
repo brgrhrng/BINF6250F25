@@ -1,0 +1,63 @@
+---
+title: "Project 08: Viterbi Algorithm"
+output: html_document
+author: "Brooks Groharing and Jacque Caldwell"
+date: "`r format(Sys.time(), '%Y%m%d')`"
+output:
+  github_document:
+    html_preview: false
+    toc: true
+    toc_depth: 2
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE)
+library('reticulate')
+```
+
+```{python py-imports}
+import markov_models as mm # module we created
+```
+
+```{python load-data}
+TESTING = False
+# Example data provided in project description
+obs = "GGCACTGAA"
+obs2 = "GGCCGGCCGGCCGG"
+obs3 = "GGCCGGACT"
+
+init_probs = {
+    "I": 0.2, "G": 0.8}
+trans_probs = {
+    "I": {"I": 0.7, "G": 0.3}, "G": {"I": 0.1, "G": 0.9}}
+emit_probs = {
+    "I": {"A": 0.1, "C": 0.4, "G": 0.4, "T": 0.1},
+    "G": {"A": 0.3, "C": 0.2, "G": 0.2, "T": 0.3}}
+
+test_HMM = mm.HMM(init_probs, trans_probs, emit_probs)
+
+if TESTING:
+  print("--------------")
+  for i,state in enumerate(test_HMM.states):
+    print(f"STATE {i}: \"{state.name}\"")
+    print(f"Init_p: {state.init_prob}")
+    print(f"emit probs:     {state.emission_probs}")
+    print(f"out_probs: {state.transition_to}")
+    print("\n")
+
+test_path = test_HMM.run_viterbi(obs)
+
+print(obs)
+print(test_path)
+
+# GGCACTGAA
+# returns: 
+# ['G', 'G', 'G', 'G', 'G', 'G', 'G', 'G']
+#
+# GGCCGGCCGGCCGG
+# returns: ['I', 'I', 'I', 'I', 'I', 'I', 'I', 'I', 'I', 'I', 'I', 'I', 'I']
+#
+# obs = "GGCCGGACT"
+# returns: ['I', 'I', 'I', 'I', 'I', 'G', 'G', 'G']
+```
