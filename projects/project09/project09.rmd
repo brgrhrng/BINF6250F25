@@ -1,0 +1,61 @@
+---
+title: "Project 09: HMM, forward, backward, forwardbackward"
+output: html_document
+author: "Brooks Groharing and Jacque Caldwell"
+date: "`r format(Sys.time(), '%Y%m%d')`"
+output:
+  github_document:
+    html_preview: false
+    toc: true
+    toc_depth: 2
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE)
+library('reticulate')
+```
+
+```{python py-imports}
+import markov_models as mm # module we created
+```
+
+```{python load-data}
+TESTING = False
+# Example data provided in project description
+# Example observation sequence
+obs = "ATGCAA"
+
+# Example initial probabilities (probability of starting in each state: E := Exon, I := Intron)
+init_probs = {
+    "E": 0.6,
+    "I": 0.4
+}
+
+# Example transition probabilities (probability of moving from one state to another)
+trans_probs = {
+    "E": {"E": 0.8, "I": 0.2},
+    "I": {"E": 0.3, "I": 0.7}
+}
+
+# Example emission probabilities (probability of observing a symbol in a given state)
+emit_probs = {
+    "E": {"A": 0.3, "C": 0.2, "G": 0.2, "T": 0.3},
+    "I": {"A": 0.1, "C": 0.4, "G": 0.4, "T": 0.1}
+}
+
+test_HMM = mm.HMM(init_probs, trans_probs, emit_probs)
+
+if TESTING:
+  print("--------------")
+  for i,state in enumerate(test_HMM.states):
+    print(f"STATE {i}: \"{state.name}\"")
+    print(f"Init_p: {state.init_prob}")
+    print(f"emit probs:     {state.emission_probs}")
+    print(f"out_probs: {state.transition_to}")
+    print("\n")
+
+#test_HMM.run_viterbi(obs)
+
+
+```
