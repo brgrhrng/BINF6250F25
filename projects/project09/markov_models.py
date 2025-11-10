@@ -75,7 +75,67 @@ class HMM:
         new_state.set_transitions(trans_probs[state_name])
       self.states.append(new_state)
       
+  
+  def run_forward(self, observations, log_values = True):
+    if type(observations) == str: # convert str -> list(char)
+      observations = [char for char in observations]
+    
+    if not type(observations) is list: # Verify type.
+      raise Exception("\'observations\' must be a list or string.")
+    
+    
+    # Initialize probability matrix
+    n_cols = len(observations) # Columns correspond to observations, in order
+    n_rows = len(self.states) # Each row corresponds to a possible hidden state
+    p_matrix = np.zeros((n_rows, n_cols))
+    
+    # Fill in the first column of our matrices
+    # At observation 0, the probability of being in a particular state is:
+    #   p = p_initial(state) * p(emitting observation 0 in this state)
+    first_emission = observations[0]
+    for state_i, state in enumerate(self.states):
+      first_emission_prob = state.emission_probs[first_emission]
+      if log_values:
+        p_matrix[state_i,0] = np.log10(state.init_prob) + np.log10(first_emission_prob)
+      else:
+        p_matrix[state_i,0] = state.init_prob * first_emission_prob
       
+    # For each possible path into a cell:
+    #   p_total = p(path into last cell) *
+    #             p(transitioning from last cell state to current cell state) *
+    #             p(current state emitting current observation)
+    # We save p_total for the most probable path into v_matrix,
+    # and the index of the prior cell in this path (within its column) to
+    # backpointers.
+    for obs_i, observation in enumerate(observations[1:], start=1): # skip col 0
+      prior_path_probs = p_matrix[:,obs_i-1] # vector representing last column in v_matrix
+      
+      for state_i, current_state in enumerate(self.states):
+        trans_here_probs = [prior_state.transition_to[current_state.name] for prior_state in self.states] # vector
+      
+        p_current_emission = current_state.emission_probs[observation] # scalar
+      
+        # Build a vector of probabilities for each possible path,
+        #   and save the sum of these paths
+        if log_values:
+          total_path_probs = prior_path_probs.copy()
+          total_path_probs += np.log10(trans_here_probs)
+          total_path_probs += np.log10(p_current_emission)
+          
+          p_matrix[state_i, obs_i] = sum_log_probs(total_path_probs)
+        else:
+          total_path_probs = prior_path_probs * trans_here_probs * p_current_emission
+          p_matrix[state_i, obs_i] = sum(total_path_probs)
+    
+    # Now that we have our matrix, sum the last column to get overall probability
+    if log_values:
+      overall_prob = sum_log_probs(p_matrix[:,-1])
+    else:
+      overall_prob = sum(p_matrix[:,-1])
+    
+    return overall_prob
+  
+  
   def run_viterbi(self, observations):
     """
     Predict the most likely sequence of states that would produce a given
@@ -181,3 +241,66 @@ class HMM:
       state_i = int(backptrs[state_i, obs_i]) # update index to pointer
     
     return state_names[::-1] # return the state_names list in reverse
+
+
+def sum_log_probs(list_of_logs):
+  """Sum a list of floats stored in log10-space without incurring underflow errors."""
+  # base change formula: log_e(x) = log10(x) / log10(e)
+  natural_logs = list_of_logs / np.log10(np.e) # convert log10-ln space
+  total = natural_logs[0]
+  for prob in natural_logs[1:]: 
+    total = np.logaddexp(total, prob) # This func only exists for base e and 2
+  total = total / np.log(10) # convert ln -> log10 space
+  
+  return total
+
+
+# Example data provided in project description
+# Example observation sequence
+obs = "ATGCAA"
+
+# Example initial probabilities (probability of starting in each state: E := Exon, I := Intron)
+init_probs = {
+    "E": 0.6,
+    "I": 0.4
+}
+
+
+
+
+# Example transition probabilities (probability of moving from one state to another)
+trans_probs = {
+    "E": {"E": 0.8, "I": 0.2},
+    "I": {"E": 0.3, "I": 0.7}
+}
+
+# Example emission probabilities (probability of observing a symbol in a given state)
+emit_probs = {
+    "E": {"A": 0.3, "C": 0.2, "G": 0.2, "T": 0.3},
+    "I": {"A": 0.1, "C": 0.4, "G": 0.4, "T": 0.1}
+}
+
+test_HMM = HMM(init_probs, trans_probs, emit_probs)
+
+if TESTING:
+  print("--------------")
+  for i,state in enumerate(test_HMM.states):
+    print(f"STATE {i}: \"{state.name}\"")
+    print(f"Init_p: {state.init_prob}")
+    print(f"emit probs:     {state.emission_probs}")
+    print(f"out_probs: {state.transition_to}")
+    print("\n")
+
+print("TEST")
+p_obs = test_HMM.run_forward(obs)
+print(p_obs)
+print(10**p_obs)
+#print(sum_log_probs([-2.20202691,-2.9066793]))
+#print(np.logaddexp(-2.20202691,-2.9066793))
+
+
+
+#prob1 = 1e-50
+#prob2 = 2.5e-50
+#print(sum_log_probs([np.log10(prob1),np.log10(prob2)]))
+#print(np.logaddexp(np.log(prob1),np.log(prob2)))
