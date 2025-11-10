@@ -7,7 +7,7 @@
 
 import random
 import numpy as np
-TESTING = False
+TESTING = True
 
 class HiddenState:
   """
@@ -139,11 +139,12 @@ class HMM:
   def run_backward(self, observations, log_values=True):
     """
     Predict the most likely sequence of states that would produce a given
-    set of observations in this model, using the viterbi algorithm.
+    set of observations in this hidden Markov Model, using the 
+    'backward' algorithm.
     Args:
       observations: a list of observation values, or a string where each 
                     character represents 1 observation.
-    Returns: list of state names
+    Returns: probability of the particular observation happening
     """
     if type(observations) == str: # convert str -> list(char)
       observations = [char for char in observations]
@@ -152,16 +153,14 @@ class HMM:
       raise Exception("\'observations\' must be a list or string.")
 
     # Initialize output matrices
-    n_cols = len(observations) # Columns correspond to observations, in order
-    n_rows = len(self.states) # Each row corresponds to a possible hidden state
-    b_matrix = np.zeros((n_rows, n_cols+1)) # we need one extra state for the matrix
+    n_cols = len(observations) # Columns correspond to observations
+    n_rows = len(self.states) # Rows correspond to a poss hidden state
+    b_matrix = np.zeros((n_rows, n_cols+1)) # one extra state for the backward matrix
     
-    # Fill in the last column of our matrices
-    # At observation T, the probability of being in a particular state is
-    # 1!!!!!!!!!!!!
-    #   p = p_initial(state) * p(emitting observation 0 in this state)
-    first_emission = observations[0]
-    
+    # Fill in the last column of our matrix
+    # At observation[n_cols], the probability of being in a particular
+    # state is 1, so we put this in b_matrix[state_i,n_cols]
+ 
     for state_i, state in enumerate(self.states):
       last_emission_prob = 1
       if log_values:
@@ -169,13 +168,18 @@ class HMM:
       else:
         b_matrix[state_i,n_cols] = last_emission_prob
         
-    if TESTING: print(f"b_matrix initially: {b_matrix}")
     # Now we can go column by column, filling in each cell in our matrices.
-    # from the last observation back down to the "inital state" in [state_i,0]
+    # from the last observation moving to the left to the 
+    # "inital state" in [state_i,0]
     # For each possible path into a cell:
-    #   p_total = p(path into prior cell) *
-    #             p(transitioning from prior cell state to current cell state) *
+    #   p_path_total = p(path into prior cell) *
+    #             p(transitioning from prior cell to current cell state) *
     #             p(current state emitting current observation)
+    # 
+    # There will be "state" number of prob_paths, which will be added
+    # together as they are "OR" probability states (so they are summed
+    # together)
+    #
     # We save p_total for the sum of the probable paths into b_matrix 
     
     # we will be going from n_cols to the left down to 0; note the last squares
@@ -343,8 +347,6 @@ init_probs = {
 }
 
 
-
-
 # Example transition probabilities (probability of moving from one state to another)
 trans_probs = {
     "E": {"E": 0.8, "I": 0.2},
@@ -370,10 +372,14 @@ if TESTING:
 
 print("TEST")
 p_obs = test_HMM.run_forward(obs)
-print(p_obs)
-print(10**p_obs)
+print(f"forward prob: {p_obs} (log10) {10**p_obs} (%)")
+print(f"for should be: -3.499 (log10) 0.0003169 (%)")
 #print(sum_log_probs([-2.20202691,-2.9066793]))
 #print(np.logaddexp(-2.20202691,-2.9066793))
+
+p_obs2 = test_HMM.run_backward(obs)
+print(f"backward prob: {p_obs2} (log10) {10**p_obs2} (%)")
+print(f"back should be: -3.425 (log10) 0.0003755 (%)")
 
 
 
