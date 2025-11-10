@@ -136,6 +136,83 @@ class HMM:
     return overall_prob
   
   
+  def run_backward(self, observations, log_values=True):
+    """
+    Predict the most likely sequence of states that would produce a given
+    set of observations in this model, using the viterbi algorithm.
+    Args:
+      observations: a list of observation values, or a string where each 
+                    character represents 1 observation.
+    Returns: list of state names
+    """
+    if type(observations) == str: # convert str -> list(char)
+      observations = [char for char in observations]
+    
+    if not type(observations) is list: # Verify type.
+      raise Exception("\'observations\' must be a list or string.")
+
+    # Initialize output matrices
+    n_cols = len(observations) # Columns correspond to observations, in order
+    n_rows = len(self.states) # Each row corresponds to a possible hidden state
+    b_matrix = np.zeros((n_rows, n_cols+1)) # we need one extra state for the matrix
+    
+    # Fill in the last column of our matrices
+    # At observation T, the probability of being in a particular state is
+    # 1!!!!!!!!!!!!
+    #   p = p_initial(state) * p(emitting observation 0 in this state)
+    first_emission = observations[0]
+    
+    for state_i, state in enumerate(self.states):
+      last_emission_prob = 1
+      if log_values:
+        b_matrix[state_i,n_cols] = np.log10(last_emission_prob)
+      else:
+        b_matrix[state_i,n_cols] = last_emission_prob
+        
+    if TESTING: print(f"b_matrix initially: {b_matrix}")
+    # Now we can go column by column, filling in each cell in our matrices.
+    # from the last observation back down to the "inital state" in [state_i,0]
+    # For each possible path into a cell:
+    #   p_total = p(path into prior cell) *
+    #             p(transitioning from prior cell state to current cell state) *
+    #             p(current state emitting current observation)
+    # We save p_total for the sum of the probable paths into b_matrix 
+    
+    # we will be going from n_cols to the left down to 0; note the last squares
+    # have already been filed b_matrix[state_i,n_cols] above.
+    
+    for obs_i in range(n_cols-1,-1,-1):   # run it backwards
+      observation = observations[obs_i] 
+    
+      prior_path_probs = b_matrix[:,obs_i+1] # vector representing last column in b_matrix
+      
+      for state_i, current_state in enumerate(self.states):
+        trans_here_probs = [prior_state.transition_to[current_state.name] for prior_state in self.states] # vector
+      
+        p_current_emission = current_state.emission_probs[observation] # scalar
+      
+        # Build a vector of probabilities for each possible path
+        if log_values:
+          total_path_probs = prior_path_probs.copy()
+          total_path_probs += np.log10(trans_here_probs)
+          total_path_probs += np.log10(p_current_emission)
+          b_matrix[state_i, obs_i] = sum_log_probs(total_path_probs)
+ 
+        else:
+          total_path_probs = prior_path_probs * trans_here_probs * p_current_emission
+          b_matrix[state_i,obs_i] = sum(total_path_probs)
+    
+    if log_values:      
+      overall_prob = sum_log_probs(b_matrix[:,0]) 
+    else:
+      overall_prob = sum(b_matrix[:,0])
+      
+    if TESTING: print(f"{overall_prob}")
+    if TESTING: print(f"b_matrix: {b_matrix}")
+    return(overall_prob)
+  
+  
+  
   def run_viterbi(self, observations):
     """
     Predict the most likely sequence of states that would produce a given
