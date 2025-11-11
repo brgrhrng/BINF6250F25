@@ -211,7 +211,7 @@ class HMM:
     p_forward, f_matrix = self.run_forward(obs, return_matrix=True)
     p_backward, b_matrix = self.run_backward(obs, return_matrix=True)
     
-    p_matrix = f_matrix + b_matrix # no looping needed!
+    p_matrix = f_matrix + b_matrix - p_forward # no looping needed!
     
     return f_matrix, b_matrix, p_matrix
 
@@ -344,8 +344,6 @@ def sum_log_probs(list_of_logs):
   
   return total
 
-TESTING = False
-
 # Example data provided in project description
 # Example observation sequence
 obs = "ATGCAA"
@@ -380,6 +378,7 @@ if TESTING:
     print("\n")
 
   print("TEST")
+  print(f"obs: {obs}")
   p_obs = test_HMM.run_forward(obs)
   print(f"forward prob: {p_obs} (log) {np.exp(p_obs)} (%)")
   print(f"for should be: -8.05724 (log) 0.0003169 (%)")
@@ -394,5 +393,6 @@ if TESTING:
   f_mat, b_mat, post_mat = test2_HMM.run_forwardbackward(obs)
   # print(f"forward matrix: {f_mat}")
   # print(f"backward matrix: {b_mat}")
-  print(f"posterior probs: {post_mat}")
+  print(f"posterior probs(log): {post_mat}")
+  print(f"posterior probs(%): {np.exp(post_mat)}")
 
