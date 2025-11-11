@@ -322,21 +322,27 @@ class HMM:
     
     return state_names[::-1] # return the state_names list in reverse
 
+
 def sum_log_probs(list_of_logs):
   """Sum a list of floats stored in log-space without incurring underflow errors.
   
-  This function solves the problems of having numbers in log space, and 
-  wanting to add two together:
-    a = log(10) = 2.302585
-    b = log(12) = 2.484907
+  This function solves the problems of having tiny numbers stored in log space, 
+  and wanting to add them together:
+    ln_a = ln(10e-100) = -227.955924206
+    ln_b = ln(12e-100) = -227.77360265
     
-    a+b is log(10) + log(12) = log(10)*log(12) = log(120) = 4.787492
-    
-    we want to add log(a+b) or log(22) which is: 3.091042
+  To calculate ln(a+b) from the stored ln(a) and ln(b), mathematically we would 
+  want to first convert them back out of log-space:
+    a+b = e**ln(10) + e**ln(12)
+        = 10e-100 + 12e-100
+        = 22e-100
+    ln(a+b) = ln(22e-100) = -227.167466846
+  
+  However, this inner conversion risks causing underflow errors.
+  Instead, we use numpy's logaddexp to stably add the log'd values together.
     
   Args: list_of_logs  numpy list of items already in log space
-  
-  returns: sum of the items (again in log space)
+  Returns: sum of the items (again in log space)
   """
   total = list_of_logs[0]
   for prob in list_of_logs[1:]: 
@@ -344,30 +350,31 @@ def sum_log_probs(list_of_logs):
   
   return total
 
-# Example data provided in project description
-# Example observation sequence
-obs = "ATGCAA"
-
-# Example initial probabilities (probability of starting in each state: E := Exon, I := Intron)
-init_probs = {
-    "E": 0.6,
-    "I": 0.4
-}
-
-
-# Example transition probabilities (probability of moving from one state to another)
-trans_probs = {
-    "E": {"E": 0.8, "I": 0.2},
-    "I": {"E": 0.3, "I": 0.7}
-}
-
-# Example emission probabilities (probability of observing a symbol in a given state)
-emit_probs = {
-    "E": {"A": 0.3, "C": 0.2, "G": 0.2, "T": 0.3},
-    "I": {"A": 0.1, "C": 0.4, "G": 0.4, "T": 0.1}
-}
 
 if TESTING:
+  # Example data provided in project description
+  # Example observation sequence
+  obs = "ATGCAA"
+  
+  # Example initial probabilities (probability of starting in each state: E := Exon, I := Intron)
+  init_probs = {
+      "E": 0.6,
+      "I": 0.4
+  }
+  
+  
+  # Example transition probabilities (probability of moving from one state to another)
+  trans_probs = {
+      "E": {"E": 0.8, "I": 0.2},
+      "I": {"E": 0.3, "I": 0.7}
+  }
+  
+  # Example emission probabilities (probability of observing a symbol in a given state)
+  emit_probs = {
+      "E": {"A": 0.3, "C": 0.2, "G": 0.2, "T": 0.3},
+      "I": {"A": 0.1, "C": 0.4, "G": 0.4, "T": 0.1}
+  }
+  
   test_HMM = HMM(init_probs, trans_probs, emit_probs)
   print("--------------")
   for i,state in enumerate(test_HMM.states):
