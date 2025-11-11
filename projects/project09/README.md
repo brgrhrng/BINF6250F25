@@ -3,7 +3,7 @@
 - Authors: Brooks Groharing and Jacqueline Caldwell
 - Due:  November 12, 2025
 
-#Introduction
+# Introduction
 
 This week we will be continuing to implement Hidden Markov
 Models by implementing the 'forward', 'backward' and '
@@ -75,7 +75,7 @@ Formula for forwardbackward probs:
          = log10(F) + log10(B)
 
 For implmentation of forwardbackward.      
-You just run forward, run backward, and then put them together with the function FB.
+You just run 'forward', run 'backward', and then put them together with the function FB.
 
 Starting with our implementation from or HMM/Viterbi, including our Class structure:
 class HiddenState:
@@ -142,64 +142,25 @@ total for ->  0.0003131 + 3.779e-06 = 3.168e-04
       bac ->  3.401e-05 + 0.0003415 = 3.755e-04
       
 ```
-
-## Other issues
-
-I proposed the following issue to Claude.ai 11/10/2025
-
-Prob(going backwards)*Prob(emission) + Prob(going forwards)*Prob(emissions); I have been doing the probabilites in log10 so that underflow isn't an issue with the floating point math, but the + at the end is going to get in the way of this...
-
-Per Claude.ai:
-Identified log-space addition problem and formulated numerically stable solution.
-
-You're hitting the classic 'log-space addition' problem! You
-can't just add log probabilities directly because log(a + b) ≠ 
-log(a) + log(b).
-
-The solution is the log-sum-exp trick:
-If you have two log probabilities log_p1 and log_p2, compute 
-their sum in log space like this:
-
-log(p1 + p2) = max(log_p1, log_p2) + 
-log10(1 + 10^(min(log_p1, log_p2) - max(log_p1, log_p2)))
-
-Why this works:
-
-Factor out the larger value to prevent overflow: log(a + b) = 
-log(a(1 + b/a)) = log(a) + log(1 + b/a)
-
-Since you're using log10, raise to base 10 instead of e
-
-In practice:
-python
-def log_sum(log_a, log_b):
-    if log_a > log_b:
-        return log_a + math.log10(1 + 10**(log_b - log_a))
-    else:
-        return log_b + math.log10(1 + 10**(log_a - log_b))
-
-This keeps everything in log space and avoids underflow because 
-the exponent (min - max) is always ≤ 0, so you're computing 
-10^(negative number) which stays in a safe range.
-
-Is this for a Hidden Markov Model or similar algorithm?
-RetryClaude can make mistakes. Please double-check responses. 
-Sonnet 4.5
-
 # Successes
+Easy implementation, just needed to change output of Viterbi for forward, reverse the main loop for 
+backward, and then combine the output from forward, backward into one matrix.
 
 # Struggles
+* log space addition problem -- solved by changing from log10 to log and using np.logaddexp() 
 
 # Personal Reflections
 ## Group Leader
 Group leader's reflection on the project.
 
-## Other member
-Other group member's reflection on the project.
+## Other member (Jacque) 
+Fairly straightforward, most of the code was already there, just needed to reformat a 
+couple of lines to make this work.  Our biggest problem, really was the log space addition problem.
+We had already started to look at this last week, but didn't make a decision until this week.
 
 # Generative AI Appendix and references
 # Cite:
-Discussions with Claude.ai (Sonnet 4.5): to clear up understanding of summing log products, on-line, November 10, 2025.
+Discussions with Claude.ai (Sonnet 4.5): to clear-up understanding of summing log products, online, November 10, 2025.
 
 
 
