@@ -5,8 +5,8 @@
 #   Created by Jacque Caldwell and Brooks Groharing for BINF6250 at Northeastern University
 ###########################################################################################
 
-import random
 import numpy as np
+import random
 
 TESTING = False
 
@@ -77,20 +77,27 @@ class HMM:
       self.states.append(new_state)
       
   
-  def run_forward(self, observations, forwardbackward = False):
+  def run_forward(self, observations, return_matrix = False):
+    """
+    Calculate the probability of a sequence of observations given this
+    hidden Markov Model, using the 'forward' algorithm.
+    Args:
+      observations: a list of observation values, or a string where each 
+                    character represents 1 observation.
+      return_matrix: if FALSE, return the overall probability of the sequence (default)
+                     if TRUE, return (overall p, probability matrix)
+    Returns: probability (float), or packed tuple (p, prob matrix)
+    """
     if type(observations) == str: # convert str -> list(char)
       observations = [char for char in observations]
     
     if not type(observations) is list: # Verify type.
       raise Exception("\'observations\' must be a list or string.")
     
-    
-    # Initialize probability matrix
-    n_cols = len(observations) # Columns correspond to observations, in order
-    n_rows = len(self.states) # Each row corresponds to a possible hidden state
+    # Initialize matrix, where each col is an obs, and each row is a possible state
+    n_cols, n_rows = len(observations), len(self.states)
     p_matrix = np.zeros((n_rows, n_cols))
     
-    # Fill in the first column of our matrices
     # At observation 0, the probability of being in a particular state is:
     #   p = p_initial(state) * p(emitting observation 0 in this state)
     first_emission = observations[0]
@@ -102,43 +109,41 @@ class HMM:
     #   p_total = p(path into last cell) *
     #             p(transitioning from last cell state to current cell state) *
     #             p(current state emitting current observation)
-    # We save p_total for the most probable path into v_matrix,
-    # and the index of the prior cell in this path (within its column) to
-    # backpointers.
     for obs_i, observation in enumerate(observations[1:], start=1): # skip col 0
-      prior_path_probs = p_matrix[:,obs_i-1] # vector representing last column in v_matrix
+      prior_path_probs = p_matrix[:,obs_i-1] # vector at prior column
       
       for state_i, current_state in enumerate(self.states):
         trans_here_probs = [prior_state.transition_to[current_state.name] for prior_state in self.states] # vector
-      
         p_current_emission = current_state.emission_probs[observation] # scalar
       
-        # Build a vector of probabilities for each possible path,
-        #   and save the sum of these paths
+        # Build a vector of p_totals for each possible path into cell
+        #   Since we are in log-space, we add values to AND them together
         total_path_probs = prior_path_probs.copy()
         total_path_probs += np.log(trans_here_probs)
         total_path_probs += np.log(p_current_emission)
-          
+        
+        # The sum of these possible path probs is the total prob of this cell 
         p_matrix[state_i, obs_i] = sum_log_probs(total_path_probs)
     
-    # Now that we have our matrix, sum the last column to get overall probability
+    # Now that we have our matrix, sum the last column to get p(observations)
     overall_prob = sum_log_probs(p_matrix[:,-1])
     
-    if forwardbackward == True:
-      return(overall_prob,p_matrix)
+    if return_matrix:
+      return (overall_prob, p_matrix)
     else:
       return overall_prob
   
   
-  def run_backward(self, observations, forwardbackward=False):
+  def run_backward(self, observations, return_matrix=False):
     """
-    Predict the most likely sequence of states that would produce a given
-    set of observations in this hidden Markov Model, using the 
-    'backward' algorithm.
+    Calculate the probability of a sequence of observations given this
+    hidden Markov Model, using the 'backward' algorithm.
     Args:
       observations: a list of observation values, or a string where each 
                     character represents 1 observation.
-    Returns: probability of the particular observation happening
+      return_matrix: if TRUE, return internal probability matrix.
+                     if FALSE, return the overall probability of the sequence (default)
+    Returns: probability of the particular observation happening, or a matrix
     """
     if type(observations) == str: # convert str -> list(char)
       observations = [char for char in observations]
@@ -146,58 +151,47 @@ class HMM:
     if not type(observations) is list: # Verify type.
       raise Exception("\'observations\' must be a list or string.")
 
-    # Initialize output matrices
-    n_cols = len(observations) # Columns correspond to observations
-    n_rows = len(self.states) # Rows correspond to a poss hidden state
-    b_matrix = np.zeros((n_rows, n_cols+1)) # one extra state for the backward matrix
+    # Initialize matrix where each col is an obs, and each row is a possible state
+    n_cols, n_rows = len(observations), len(self.states)
+    b_matrix = np.zeros((n_rows, n_cols+1)) # one extra col for the backward matrix
     
-    # Fill in the last column of our matrix
-    # At observation[n_cols], the probability of being in a particular
-    # state is 1, so we put this in b_matrix[state_i,n_cols]
- 
+    # Since we start from the end, the probability of the last observation is 1.
+    # So, we initialize the final column of b_matrix with 1s.
     for state_i, state in enumerate(self.states):
-      last_emission_prob = 1
-      b_matrix[state_i,n_cols] = np.log(last_emission_prob)
-      
-        
+      b_matrix[state_i,n_cols] = np.log(1)
+    
     # Now we can go column by column, filling in each cell in our matrices.
     # from the last observation moving to the left to the 
     # "inital state" in [state_i,0]
-    # For each possible path into a cell:
-    #   p_path_total = p(path into prior cell) *
-    #             p(transitioning from prior cell to current cell state) *
+    # For each possible path into a cell (moving right to left):
+    #   p_total = p(path into last cell) *
+    #             p(transitioning from last cell state to current cell state) *
     #             p(current state emitting current observation)
-    # 
-    # There will be "state" number of prob_paths, which will be added
-    # together as they are "OR" probability states (so they are summed
-    # together)
-    #
-    for obs_i in range(n_cols-1,-1,-1):   # run it backwards
-      observation = observations[obs_i] # base it on our observed states
-    
-      prior_path_probs = b_matrix[:,obs_i+1] # vector representing last column in b_matrix
+    for obs_i in range(n_cols-1,-1,-1): # iterate backwards!
+      observation = observations[obs_i]
+      prior_path_probs = b_matrix[:,obs_i+1] # vector at previous column
       
       for state_i, current_state in enumerate(self.states):
         trans_here_probs = [prior_state.transition_to[current_state.name] for prior_state in self.states] # vector
-      
         p_current_emission = current_state.emission_probs[observation] # scalar
       
-        # Build a vector of probabilities for each possible path
-     
+        # Build a vector of probabilities for each possible path into cell
         total_path_probs = prior_path_probs.copy()
         total_path_probs += np.log(trans_here_probs)
         total_path_probs += np.log(p_current_emission)
-          
+        
+        # OR the paths together to get overall prob of cell
         b_matrix[state_i, obs_i] = sum_log_probs(total_path_probs)
- 
+    
+    # Now that we have our matrix, sum the last column to get p(observations)
     overall_prob = sum_log_probs(b_matrix[:,0]) 
     
-    if (forwardbackward==True):
-      return(b_matrix[:,:-1])
+    if return_matrix:
+      return (overall_prob, b_matrix[:,:-1]) # drop extra column
     else:
-      return(overall_prob)
-  #end run_backward
-  
+      return overall_prob
+
+
   def run_forwardbackward(self, observations):
     '''
     part of the hidden Markov Model suite of functions
@@ -214,17 +208,12 @@ class HMM:
     returns:
       matrices with the forward, backward and posterior probs
     '''
+    p_forward, f_matrix = self.run_forward(obs, return_matrix=True)
+    p_backward, b_matrix = self.run_backward(obs, return_matrix=True)
     
-    ReturnMatrices = True
-    
-    p_forward, f_matrix = self.run_forward(obs,forwardbackward=True)
-                                      
-    b_matrix = self.run_backward(obs,forwardbackward=True)
-
     p_matrix = f_matrix + b_matrix # no looping needed!
-   
+    
     return f_matrix, b_matrix, p_matrix
-    #end forwardbackward function
 
 
   def run_viterbi(self, observations):
