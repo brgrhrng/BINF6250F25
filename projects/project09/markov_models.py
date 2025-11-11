@@ -7,7 +7,8 @@
 
 import random
 import numpy as np
-TESTING = True
+
+TESTING = False
 
 class HiddenState:
   """
@@ -76,7 +77,7 @@ class HMM:
       self.states.append(new_state)
       
   
-  def run_forward(self, observations, log_values = True):
+  def run_forward(self, observations, forwardbackward = False):
     if type(observations) == str: # convert str -> list(char)
       observations = [char for char in observations]
     
@@ -95,10 +96,7 @@ class HMM:
     first_emission = observations[0]
     for state_i, state in enumerate(self.states):
       first_emission_prob = state.emission_probs[first_emission]
-      if log_values:
-        p_matrix[state_i,0] = np.log10(state.init_prob) + np.log10(first_emission_prob)
-      else:
-        p_matrix[state_i,0] = state.init_prob * first_emission_prob
+      p_matrix[state_i,0] = np.log(state.init_prob) + np.log(first_emission_prob)
       
     # For each possible path into a cell:
     #   p_total = p(path into last cell) *
@@ -117,26 +115,22 @@ class HMM:
       
         # Build a vector of probabilities for each possible path,
         #   and save the sum of these paths
-        if log_values:
-          total_path_probs = prior_path_probs.copy()
-          total_path_probs += np.log10(trans_here_probs)
-          total_path_probs += np.log10(p_current_emission)
+        total_path_probs = prior_path_probs.copy()
+        total_path_probs += np.log(trans_here_probs)
+        total_path_probs += np.log(p_current_emission)
           
-          p_matrix[state_i, obs_i] = sum_log_probs(total_path_probs)
-        else:
-          total_path_probs = prior_path_probs * trans_here_probs * p_current_emission
-          p_matrix[state_i, obs_i] = sum(total_path_probs)
+        p_matrix[state_i, obs_i] = sum_log_probs(total_path_probs)
     
     # Now that we have our matrix, sum the last column to get overall probability
-    if log_values:
-      overall_prob = sum_log_probs(p_matrix[:,-1])
-    else:
-      overall_prob = sum(p_matrix[:,-1])
+    overall_prob = sum_log_probs(p_matrix[:,-1])
     
-    return overall_prob
+    if forwardbackward == True:
+      return(overall_prob,p_matrix)
+    else:
+      return overall_prob
   
   
-  def run_backward(self, observations, log_values=True):
+  def run_backward(self, observations, forwardbackward=False):
     """
     Predict the most likely sequence of states that would produce a given
     set of observations in this hidden Markov Model, using the 
@@ -163,10 +157,8 @@ class HMM:
  
     for state_i, state in enumerate(self.states):
       last_emission_prob = 1
-      if log_values:
-        b_matrix[state_i,n_cols] = np.log10(last_emission_prob)
-      else:
-        b_matrix[state_i,n_cols] = last_emission_prob
+      b_matrix[state_i,n_cols] = np.log(last_emission_prob)
+      
         
     # Now we can go column by column, filling in each cell in our matrices.
     # from the last observation moving to the left to the 
@@ -180,13 +172,8 @@ class HMM:
     # together as they are "OR" probability states (so they are summed
     # together)
     #
-    # We save p_total for the sum of the probable paths into b_matrix 
-    
-    # we will be going from n_cols to the left down to 0; note the last squares
-    # have already been filed b_matrix[state_i,n_cols] above.
-    
     for obs_i in range(n_cols-1,-1,-1):   # run it backwards
-      observation = observations[obs_i] 
+      observation = observations[obs_i] # base it on our observed states
     
       prior_path_probs = b_matrix[:,obs_i+1] # vector representing last column in b_matrix
       
@@ -196,27 +183,50 @@ class HMM:
         p_current_emission = current_state.emission_probs[observation] # scalar
       
         # Build a vector of probabilities for each possible path
-        if log_values:
-          total_path_probs = prior_path_probs.copy()
-          total_path_probs += np.log10(trans_here_probs)
-          total_path_probs += np.log10(p_current_emission)
-          b_matrix[state_i, obs_i] = sum_log_probs(total_path_probs)
+     
+        total_path_probs = prior_path_probs.copy()
+        total_path_probs += np.log(trans_here_probs)
+        total_path_probs += np.log(p_current_emission)
+          
+        b_matrix[state_i, obs_i] = sum_log_probs(total_path_probs)
  
-        else:
-          total_path_probs = prior_path_probs * trans_here_probs * p_current_emission
-          b_matrix[state_i,obs_i] = sum(total_path_probs)
+    overall_prob = sum_log_probs(b_matrix[:,0]) 
     
-    if log_values:      
-      overall_prob = sum_log_probs(b_matrix[:,0]) 
+    if (forwardbackward==True):
+      return(b_matrix[:,:-1])
     else:
-      overall_prob = sum(b_matrix[:,0])
-      
-    if TESTING: print(f"{overall_prob}")
-    if TESTING: print(f"b_matrix: {b_matrix}")
-    return(overall_prob)
+      return(overall_prob)
+  #end run_backward
   
-  
-  
+  def run_forwardbackward(self, observations):
+    '''
+    part of the hidden Markov Model suite of functions
+    Runs two methods of calculating probability of possible hidden 
+    states then combines them to calcuate the posterior probabilities
+    (this is considered an inference)
+    
+    Note as all of our functions return values in log space, we will
+    also do the combination in log space (Ie using sums instead of multiplying)
+    
+    Args:
+      observation: list of possible states to hand to our model
+    
+    returns:
+      matrices with the forward, backward and posterior probs
+    '''
+    
+    ReturnMatrices = True
+    
+    p_forward, f_matrix = self.run_forward(obs,forwardbackward=True)
+                                      
+    b_matrix = self.run_backward(obs,forwardbackward=True)
+
+    p_matrix = f_matrix + b_matrix # no looping needed!
+   
+    return f_matrix, b_matrix, p_matrix
+    #end forwardbackward function
+
+
   def run_viterbi(self, observations):
     """
     Predict the most likely sequence of states that would produce a given
@@ -266,7 +276,7 @@ class HMM:
     for state_i, state in enumerate(self.states):
       first_emission_prob = state.emission_probs[first_emission]
       if log_values:
-        v_matrix[state_i,0] = np.log10(state.init_prob) + np.log10(first_emission_prob)
+        v_matrix[state_i,0] = np.log(state.init_prob) + np.log(first_emission_prob)
       else:
         v_matrix[state_i,0] = state.init_prob * first_emission_prob
       backpointers[state_i,0] = -1 # no prior column, so set pointer to -1
@@ -291,8 +301,8 @@ class HMM:
         # Build a vector of probabilities for each possible path
         if log_values:
           total_path_probs = prior_path_probs.copy()
-          total_path_probs += np.log10(trans_here_probs)
-          total_path_probs += np.log10(p_current_emission)
+          total_path_probs += np.log(trans_here_probs)
+          total_path_probs += np.log(p_current_emission)
         else:
           total_path_probs = prior_path_probs * trans_here_probs * p_current_emission
         
@@ -323,18 +333,29 @@ class HMM:
     
     return state_names[::-1] # return the state_names list in reverse
 
-
 def sum_log_probs(list_of_logs):
-  """Sum a list of floats stored in log10-space without incurring underflow errors."""
-  # base change formula: log_e(x) = log10(x) / log10(e)
-  natural_logs = list_of_logs / np.log10(np.e) # convert log10-ln space
-  total = natural_logs[0]
-  for prob in natural_logs[1:]: 
-    total = np.logaddexp(total, prob) # This func only exists for base e and 2
-  total = total / np.log(10) # convert ln -> log10 space
+  """Sum a list of floats stored in log-space without incurring underflow errors.
+  
+  This function solves the problems of having numbers in log space, and 
+  wanting to add two together:
+    a = log(10) = 2.302585
+    b = log(12) = 2.484907
+    
+    a+b is log(10) + log(12) = log(10)*log(12) = log(120) = 4.787492
+    
+    we want to add log(a+b) or log(22) which is: 3.091042
+    
+  Args: list_of_logs  numpy list of items already in log space
+  
+  returns: sum of the items (again in log space)
+  """
+  total = list_of_logs[0]
+  for prob in list_of_logs[1:]: 
+    total = np.logaddexp(total, prob) # T
   
   return total
 
+TESTING = False
 
 # Example data provided in project description
 # Example observation sequence
@@ -359,9 +380,8 @@ emit_probs = {
     "I": {"A": 0.1, "C": 0.4, "G": 0.4, "T": 0.1}
 }
 
-test_HMM = HMM(init_probs, trans_probs, emit_probs)
-
 if TESTING:
+  test_HMM = HMM(init_probs, trans_probs, emit_probs)
   print("--------------")
   for i,state in enumerate(test_HMM.states):
     print(f"STATE {i}: \"{state.name}\"")
@@ -370,20 +390,20 @@ if TESTING:
     print(f"out_probs: {state.transition_to}")
     print("\n")
 
-print("TEST")
-p_obs = test_HMM.run_forward(obs)
-print(f"forward prob: {p_obs} (log10) {10**p_obs} (%)")
-print(f"for should be: -3.499 (log10) 0.0003169 (%)")
-#print(sum_log_probs([-2.20202691,-2.9066793]))
-#print(np.logaddexp(-2.20202691,-2.9066793))
+  print("TEST")
+  p_obs = test_HMM.run_forward(obs)
+  print(f"forward prob: {p_obs} (log) {np.exp(p_obs)} (%)")
+  print(f"for should be: -8.05724 (log) 0.0003169 (%)")
 
-p_obs2 = test_HMM.run_backward(obs)
-print(f"backward prob: {p_obs2} (log10) {10**p_obs2} (%)")
-print(f"back should be: -3.425 (log10) 0.0003755 (%)")
+  p_obs2 = test_HMM.run_backward(obs)
+  print(f"backward prob: {p_obs2} (log) {np.exp(p_obs2)} (%)")
+  print(f"back should be: -7.887252 (log) 0.0003755 (%)")
 
+  # reinitializse first
+  test2_HMM = HMM(init_probs, trans_probs, emit_probs)
 
+  f_mat, b_mat, post_mat = test2_HMM.run_forwardbackward(obs)
+  # print(f"forward matrix: {f_mat}")
+  # print(f"backward matrix: {b_mat}")
+  print(f"posterior probs: {post_mat}")
 
-#prob1 = 1e-50
-#prob2 = 2.5e-50
-#print(sum_log_probs([np.log10(prob1),np.log10(prob2)]))
-#print(np.logaddexp(np.log(prob1),np.log(prob2)))

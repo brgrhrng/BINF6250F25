@@ -14,6 +14,7 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo=TRUE)
 library('reticulate')
+reticulate::use_condaenv(condaenv = "r-reticulate")
 ```
 
 ```{python py-imports}
@@ -21,7 +22,7 @@ import markov_models as mm # module we created
 ```
 
 ```{python load-data}
-TESTING = False
+TESTING = True
 # Example data provided in project description
 # Example observation sequence
 obs = "ATGCAA"
@@ -44,9 +45,8 @@ emit_probs = {
     "I": {"A": 0.1, "C": 0.4, "G": 0.4, "T": 0.1}
 }
 
-test_HMM = mm.HMM(init_probs, trans_probs, emit_probs)
-
 if TESTING:
+  test_HMM = mm.HMM(init_probs, trans_probs, emit_probs)
   print("--------------")
   for i,state in enumerate(test_HMM.states):
     print(f"STATE {i}: \"{state.name}\"")
@@ -55,7 +55,21 @@ if TESTING:
     print(f"out_probs: {state.transition_to}")
     print("\n")
 
-#test_HMM.run_viterbi(obs)
+    print("TEST")
+    p_obs = test_HMM.run_forward(obs)
+    print(f"forward prob: {p_obs} (log) {np.exp(p_obs)} (%)")
+    print(f"for should be: -8.05724 (log) 0.0003169 (%)")
 
+    p_obs2 = test_HMM.run_backward(obs)
+    print(f"backward prob: {p_obs2} (log) {np.exp(p_obs2)} (%)")
+    print(f"back should be: -7.887252 (log) 0.0003755 (%)")
+
+    # reinitializse first
+    test2_HMM = HMM(init_probs, trans_probs, emit_probs)
+
+    f_mat, b_mat, post_mat = test2_HMM.run_forwardbackward(obs)
+    # print(f"forward matrix: {f_mat}")
+    # print(f"backward matrix: {b_mat}")
+    print(f"posterior probs: {post_mat}")
 
 ```
