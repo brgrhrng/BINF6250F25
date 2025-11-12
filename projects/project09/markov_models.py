@@ -203,13 +203,13 @@ class HMM:
     also do the combination in log space (Ie using sums instead of multiplying)
     
     Args:
-      observation: list of possible states to hand to our model
+      observations: list of possible states to hand to our model
     
     returns:
       matrices with the forward, backward and posterior probs
     '''
-    p_forward, f_matrix = self.run_forward(obs, return_matrix=True)
-    p_backward, b_matrix = self.run_backward(obs, return_matrix=True)
+    p_forward, f_matrix = self.run_forward(observations, return_matrix=True)
+    p_backward, b_matrix = self.run_backward(observations, return_matrix=True)
     
     p_matrix = f_matrix + b_matrix - p_forward # no looping needed!
     
