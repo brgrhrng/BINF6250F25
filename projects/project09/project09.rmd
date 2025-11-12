@@ -19,6 +19,7 @@ reticulate::use_condaenv(condaenv = "r-reticulate")
 
 ```{python py-imports}
 import markov_models as mm # module we created
+import numpy as np
 ```
 
 ```{python load-data}
@@ -65,7 +66,7 @@ if TESTING:
     print(f"back should be: -7.887252 (log) 0.0003755 (%)")
 
     # reinitializse first
-    test2_HMM = HMM(init_probs, trans_probs, emit_probs)
+    test2_HMM = mm.HMM(init_probs, trans_probs, emit_probs)
 
     f_mat, b_mat, post_mat = test2_HMM.run_forwardbackward(obs)
     # print(f"forward matrix: {f_mat}")
