@@ -151,7 +151,7 @@ backward, and then combine the output from forward, backward into one matrix.
 * Choice of log base -- We originally were storing log-probs with base 10, which is a little more "readable" than other bases (ie you can easily infer the original probability's order of magnitude). However, numpy's log-addition function only cover ln and log2. We settled on changing our HMM to always use natural logs internally.
 
 # Personal Reflections
-## Group Leader
+## Group Leader (Brooks)
 This really wasn't that bad. The forward matrix is built almost identically to viterbi, just using a summation instead of max() in the final calculation; the backward algorithm just required a different iteration order. Once we had these functions working, Jacque was able to use these matrices to calculate the F-B matrix with just a few lines. The biggest obstacle was figuring out how to deal with log probs in the forward and backward calcs, since we couldn't just rely on the product rule like in viterbi.
 
 With the amount of duplicated code between _fill_viterbi, run_forward(), and run_backward(), I considered whether we should decompose these into smaller helper functions, or maybe write a single function capable of generating forward _or_ backward matrices dependent on an input flag. However, we decided that as written, the steps were easier to follow (and our functions aren't actually terribly complicated--they just look long because of the fairly explicit comments).
