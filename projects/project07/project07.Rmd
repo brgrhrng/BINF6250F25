@@ -1,0 +1,266 @@
+---
+title: "Project 07: Burrows-Wheeler Transform"
+output: html_document
+author: "Brooks Groharing"
+date: "`r format(Sys.time(), '%Y%m%d')`"
+output:
+  github_document:
+    html_preview: false
+    toc: true
+    toc_depth: 2
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE)
+library('reticulate')
+```
+
+
+
+```{python naive-bwt}
+
+def BWT_naive(inp_string: str) -> str:
+  """
+  Basic (naive) implemention of Burrows-Wheeler Transform function.
+  This is easier to follow conceptually than a suffix array version, but inefficient since it creates an entire matrix of cyclic rotations. It is *not* used elsewhere in this project."""
+  
+  if inp_string[-1] != "$":
+    inp_string += "$"
+  
+  n_chars = len(inp_string)
+  wrapped = inp_string + inp_string
+  
+  cyclic_rotations = tuple(wrapped[i:i+n_chars] for i in range(0,n_chars))
+  sorted_rots = sorted(cyclic_rotations)
+  [print(rot) for rot in sorted_rots]
+  last_chars = (row[-1] for row in sorted_rots)
+  outstring = "".join(last_chars)
+  return outstring
+
+test = BWT_naive("PINEAPPLE")
+print("\n",test)
+print(sorted(test))
+```
+
+
+```{python fast-BWT-helpers}
+def suffix_array(inp_string: str) -> list[int]:
+  """Function to calculate suffix-array for a given string.
+  
+    Computes the suffix array by sorting all suffixes of the input string
+    lexicographically and returning their starting positions.
+    
+    Args:
+        string: The input string to process.
+    
+    Returns:
+        A list of integers representing the starting positions of the
+        lexicographically sorted suffixes.
+      """
+  # Generate list of suffix strings
+  suffixes = [inp_string[i:] for i, char in enumerate(inp_string)]
+  
+  # Sort them lexicographically, preserving the initial index
+  suffixes_indexed = zip(suffixes, range(len(suffixes)))
+  suffixes_sorted = sorted(suffixes_indexed)
+  
+  # Return the indices
+  suffix_array = [suffix[1] for suffix in suffixes_sorted]
+  return suffix_array
+
+
+def BWT_fast(inp_text: str, precomputed_suffixes=None) -> str:
+  """
+  Function to efficiently encode BWT transform from an input string using suffix arrays.
+  The suffix
+  Args:
+      inp_text: The input string to process.
+      
+  Returns:
+      String representing the BWT of inp_text
+  """
+  # Get a list of indices for all suffixes of the input string.
+  suffix_indices = suffix_array(inp_text)
+  
+  # For each suffix, get the character preceding it and add to a string.
+  bwt = ''.join(inp_text[suffix_i - 1] for suffix_i in suffix_indices)
+  
+  return bwt
+
+```
+
+
+```{python helper-tests}
+for test_string in ('banana$',"googol$"):
+  print(suffix_array(test_string)) # [6, 5, 3, 1, 0, 4, 2] [6, 3, 0, 5, 2, 4, 1]
+  print(BWT_fast(test_string))  #'annb$aa' 'lo$oogg'
+```
+
+
+
+```{python index-class}
+class FMIndex:
+  """
+  An object that stores a compressed text sequence, with methods for efficient string matching based on the Burrows-Wheeler transform.
+  Only the compressed BW-T of the reference string, and some extra derived data structures are stored.
+  TODO: store BWT in run-length compressed form, and expand it with a property.
+  """
+  end_char = "$"
+  
+  def __init__(self, reference_text: str):
+    # Append an end character to reference if needed
+    if reference_text[-1] != self.end_char:
+      reference_text += self.end_char
+    
+    # Encode reference as BWT and store it.
+    self.bwt = BWT_fast(reference_text) # last column from sorted BWT matrix
+    
+    # Store counts dict for reference
+    self._lesser_char_counts = self._count_lesser_chars(reference_text)
+    
+    # Store occurrences array (dict) for BWT
+    self._bwt_occurence_map = self._occurences_map(self.bwt)
+    
+    # I'm not sure if I'm supposed to store the full suffix index in
+    # an FM index, or compute it on the fly.
+    # Currently my BWT_fast already calculates the index internally, and discards it;
+    #   so if we do want to save it indefinitely, I should fix this duplicated work.
+    self.suffix_indexes = suffix_array(reference_text)
+  
+  
+  def _count_lesser_chars(self, ref_string):
+    """Generate a dict of (char, count) tuples for all chars in alphabet, 
+    where "count" is the number of characters in ref_string which are     
+      lexicographically smaller than char."""
+    
+    # Get alphabet of chars in ref_string, and sort lexicographically
+    alphabet = list(set(ref_string))
+    alphabet = sorted(alphabet)
+    
+    # Build the cumulative count dict
+    count_dict = {}
+    cumulative_count = 0
+    for char in alphabet:
+      count_dict[char] = cumulative_count
+      cumulative_count += ref_string.count(char)
+    
+    return count_dict
+  
+  
+  def _occurences_map(self, ref_string):
+    """Creates an occurence dict, where keys are unique chars in ref_string 
+      alphabet, and values are lists such that:
+        occur_dict[char][i] = count of char in ref_string[0:i]
+    """
+    occur_dict = {}
+    for ref_i, ref_char in enumerate(ref_string):
+      # For each known alphabet value, copy previous occurrence count
+      #   to current position
+      for alpha in occur_dict.keys():
+        occur_dict[alpha].append(occur_dict[alpha][ref_i-1])
+      
+      # Initialize occurences list for reference character if need be,
+      #   and then increase its value at the current position
+      occur_dict[ref_char] = occur_dict.get(ref_char, [0]*(ref_i+1))
+      occur_dict[ref_char][ref_i] += 1
+    return occur_dict
+  
+  
+  def last_to_first(self, last_index: int):
+    """Given a position in the last column of BWT matrix (self.bwt), return
+    the index of the same character in the first column."""
+    
+    # The ith instance of a specific character in the BWT column
+    # corresponds to the ith instances of it in the first column.
+    #     ex: The third A in last column is the third A in the first column
+    
+    # Further, the first column is lexicographically sorted. SO, we know
+    # that the third A will be after ALL lesser characters, plus 2 preceding As.
+    
+    char = self.bwt[last_index]
+    char_number = self._bwt_occurence_map[char][last_index]
+    lesser_char_count = self._lesser_char_counts[char]
+    
+    first_col_index = lesser_char_count + char_number - 1 # 0-indexed
+    
+    return first_col_index
+  
+  
+  def get_first_col(self):
+    """Recover first column in the BWT matrix.
+    Since the rows in the matrix were lexicographically sorted,
+    Column 0 can always be obtained by lex. sorting any other column."""
+    first_col = "".join(sorted(self.bwt))
+    return first_col
+    
+    
+  def get_reference_string(self):
+    """Invert the Burrows-Wheeler transform, recovering the original sequence.
+    This is recalculated every time the getter is called, and discarded--so store
+    it *externally* if you need it."""
+    
+    last_col_i = 0
+    reference = ""
+    while len(reference) < len(self.bwt):
+      reference += self.bwt[last_col_i]
+      
+      # Find the current character's index in the first column
+      first_col_i = self.last_to_first(last_col_i)
+      
+      # Because our rows are cyclic rotations, the last
+      #   character in a row directly precedes the first character
+      #   in the original sequence.
+      # We can use this to trace the next character in the sequence.
+      last_col_i = first_col_i
+    
+    # Our sequence was traced back-to-front, so it needs to be reversed.  
+    return reference[::-1]
+  
+  
+  def count(self, query: str) -> int:
+    """Count occurrences of a pattern in encoded string."""
+    return len(self.locate(query)) # This may be overkill
+  
+  
+  def locate(self, query: str) -> list[int]:
+    """Get the index of all occurrences of pattern in encoded string.
+    Indices are returned in an ordered list."""
+    
+    lower, upper = 0, len(self.suffix_indexes)-1
+    for char in query[::-1]:
+      if lower > upper:
+        return [] # no match.
+      lower, upper = self._update_search_window(char, upper, lower)
+      
+    hits = [self.suffix_indexes[i] for i in range(lower,upper)]
+    return sorted(hits)
+  
+  
+  def _update_search_window(self, char: str, upper: int, lower: int):
+    """Used by locate() to adjust the span of possible matches in the
+    suffix array, until it encapsulates the matching suffixes."""
+    lesser_char_count = self._lesser_char_counts[char]
+    
+    if lower == 0:
+      lower_new = lesser_char_count
+    else:
+      lower_new = lesser_char_count + self._bwt_occurence_map[char][lower-1]
+    upper_new = lesser_char_count + self._bwt_occurence_map[char][upper-1]
+    
+    return lower_new, upper_new
+```    
+
+```{python} 
+test_seq = "banana"
+test_query = "ana"
+test1 = FMIndex(test_seq)
+
+print(f"SEQ: {test_seq}")
+print(f"1st: {test1.get_reference_string()}")
+print(f"BWT: {test1.bwt}")
+print(f"suffix_i: {test1.suffix_indexes}")
+
+print(f"\nQuery: {test_query}")
+print(f"Locations: SEQ{test1.locate(test_query)}") # 1 3
+```
