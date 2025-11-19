@@ -316,7 +316,7 @@ class HMM:
     
     if TESTING: print(f"traceback_pos, backptrs: {traceback_pos}, {backptrs}")
     state_names = []
-    for obs_i in range(tb_obs_i, 0, -1): # loop backwards through observations
+    for obs_i in range(tb_obs_i, -1, -1): # loop backwards through observations to 0!
       state_names.append(self.states[state_i].name) # Save current state name
       state_i = int(backptrs[state_i, obs_i]) # update index to pointer
     
