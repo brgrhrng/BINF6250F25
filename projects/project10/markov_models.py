@@ -153,12 +153,12 @@ class HMM:
 
     # Initialize matrix where each col is an obs, and each row is a possible state
     n_cols, n_rows = len(observations), len(self.states)
-    b_matrix = np.zeros((n_rows, n_cols+1)) # one extra col for the backward matrix
+    b_matrix = np.zeros((n_rows, n_cols)) # initialize B matrix with zeros
     
     # Since we start from the end, the probability of the last observation is 1.
     # So, we initialize the final column of b_matrix with 1s.
-    for state_i, state in enumerate(self.states):
-      b_matrix[state_i,n_cols] = np.log(1)
+    # for state_i, state in enumerate(self.states):
+    #  b_matrix[state_i,n_cols] = np.log(1) ; but as np.log(1) is 0; no need!
     
     # Now we can go column by column, filling in each cell in our matrices.
     # from the last observation moving to the left to the 
@@ -167,27 +167,28 @@ class HMM:
     #   p_total = p(path into last cell) *
     #             p(transitioning from last cell state to current cell state) *
     #             p(current state emitting current observation)
-    for obs_i in range(n_cols-1,-1,-1): # iterate backwards!
-      observation = observations[obs_i]
+    # changed to log states -- so log(p_total) = prior + log(p(transit_to)) + log(p(emission(state)))
+    for obs_i in range(n_cols-2,-1,-1): # iterate backwards!
+      observation = observations[obs_i+1] #  we will be looking at the +1 observation for emission and transition_to
       prior_path_probs = b_matrix[:,obs_i+1] # vector at previous column
       
       for state_i, current_state in enumerate(self.states):
-        trans_here_probs = [prior_state.transition_to[current_state.name] for prior_state in self.states] # vector
-        p_current_emission = current_state.emission_probs[observation] # scalar
-      
+        trans_here_probs = [current_state.transition_to[prior_state.name] for prior_state in self.states] # vector
+        p_current_emission = current_state.emission_probs[observation] # scalar -- obs is already t+1!!!!!
+        
         # Build a vector of probabilities for each possible path into cell
         total_path_probs = prior_path_probs.copy()
         total_path_probs += np.log(trans_here_probs)
         total_path_probs += np.log(p_current_emission)
         
         # OR the paths together to get overall prob of cell
-        b_matrix[state_i, obs_i] = sum_log_probs(total_path_probs)
+        b_matrix[state_i, obs_i] = np.logaddexp.reduce(total_path_probs)
     
     # Now that we have our matrix, sum the last column to get p(observations)
-    overall_prob = sum_log_probs(b_matrix[:,0]) 
+    overall_prob = np.logaddexp.reduce(b_matrix[:,0]) 
     
     if return_matrix:
-      return (overall_prob, b_matrix[:,:-1]) # drop extra column
+      return (overall_prob, b_matrix)
     else:
       return overall_prob
 
