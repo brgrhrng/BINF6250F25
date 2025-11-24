@@ -19,7 +19,7 @@ Description of the project
         <done> backward will need to export a probability for this to happen
         <done> average them:this will be the likelihood that we are comparing
            for convergence, as well as using in calculations.
-    5. Scaling?  
+    5. Scaling?  (see if (changed_model > 0) in while/for loop in run_baum_welch
         a. keeping it in log space helps, but is not all we need to do?
         b. Consider:
             i. may need to keep track of how many times the models is changed?
@@ -31,14 +31,18 @@ Description of the project
         <done> comparitor via likelihood; 
         <done> what is the thing we are changing?  
 < how do we update the HMM model when current is updated>
-    * We need a way of initializing the model properly -- should 
-    create a function that creates alphabet,etc. and then sends the
-    we could just initilize with baseline probabilities (based on the
-    number of emissions in the alphabet - divide by one, etc, etc.)
-    We are going to have to have the hidden states set up as well.
-          * will need to add the probabilities after we have 
+    7. We need a way of initializing the model properly -- should 
+        <done-ish> create a function that creates alphabet,etc. and then sends the
+        <done-ish> we could just initilize with baseline probabilities (based on the number of emissions in the alphabet - divide by one, etc, etc.)
+        * We are going to have to have the hidden states set up as well.
+    8. !!!* will need to add the probabilities after we have 
             looked at all of observations in our training list
-
+    9. !!! we need a way of breaking out of both the for loop and the while loop (other than max_loop)
+   10. !!! see scaling issue above in while/for loop 
+    code needed for if (changed_model > 0)
+   11. !! M-Step A_denom, etc. see math section
+   12. low priority some_default_model is not really implemented.
+   13. Testing!
         
         
 # Pseudocode
