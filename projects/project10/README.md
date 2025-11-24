@@ -6,201 +6,225 @@
 # Introduction
 Description of the project
 
+# Current todo list:
+  * Update pseudocode 'training' 
+
+  * Math issues:
+    1. make sure that we are only using:
+        beta[t-1], gamma[t-1], xi[t-1]
+    <done> keep math in log_space
+    <
+    3. actual calcluation of xi in code; as we've already done the others.
+    <done> change likelihood to be average of forward/backward prob.
+        <done> backward will need to export a probability for this to happen
+        <done> average them:this will be the likelihood that we are comparing
+           for convergence, as well as using in calculations.
+    5. Scaling?  
+        a. keeping it in log space helps, but is not all we need to do?
+        b. Consider:
+            i. may need to keep track of how many times the models is changed?
+            ii. may need to keep track of how many times the likelihood is changed
+            iii. may need to adjust by one or both of these factors
+                in loop in run_baum_welch "changed_model > 0"
+    6. Confirm Xi, pi, A and B calculations.
+    <done> Convergence
+        <done> comparitor via likelihood; 
+        <done> what is the thing we are changing?  
+< how do we update the HMM model when current is updated>
+    * We need a way of initializing the model properly -- should 
+    create a function that creates alphabet,etc. and then sends the
+    we could just initilize with baseline probabilities (based on the
+    number of emissions in the alphabet - divide by one, etc, etc.)
+    We are going to have to have the hidden states set up as well.
+          * will need to add the probabilities after we have 
+            looked at all of observations in our training list
+
+        
+        
 # Pseudocode
 Put pseudocode in this box:
 
 ```{}
-Pseudocode:
-
-Todo:
-  what do we send forward * backward
-  what is the math for gamma (fowardbackward)
-  implement fastforward
-  how can I access matrices in our class?
-  are the results from forward and backward in log space (I think they are?)
-  
-  do I need a dtype lambda (model dictionary) or not?
-
-
+# Global variables/constants
 EQ = 1
 GT = 2
 LT = 0
 
-# N is our number of hidden states
-# M is our number of emissions
+# Notes on the math/algorithm:
+
+# N is our number of states (indexed by i,j (going from S_i to S_j))
+# M is our number of emissions (indexed by j and obs_k; prob of having obs_k emission at state S_j, where K is the list of our alphabet!)
 # T is our number of observations (time T)
 
-#values in the dictionaries are in log_space (natural log space)
+# values in the dictionaries are in log_space (natural log space)
 
-lambda dictionary with:   # not sure I need this as we already have hmm.
-  init: vector # (N*1)
-  trans_to: matrix # (N*M)
-  emission: matrix # (N*M)
-  
-# Notes:
-# these are all associated with a single observation 'name'
-# A matrix is trans_to matrix
-# B matrix is emission matrix
-# alpha_matrix is output from 'forward' (likelihood also comes from here)
-# beta_matrix is output from 'backward'
-# gamma_matrix is combined alpha & beta
-# xi is combined alpha, A, B and beta
+# we take as given that our model is the following three things:
+#  init: vector # (N*1)
+#  trans_to: matrix # (N*N) ; assoc state_names
+#  emission: matrix # (N*M) ; assoc emit_names
+ 
+# a model can represent more than one observation/training
+
+# To help with math translation:
+#
+# pi = init_probs
+# A matrix = trans_to probs
+# B matrix = emission probs
+# alpha_m = f_matrix from 'forward' (for_likelihood also comes from here) N*T
+# beta_m = b_matrix from 'backward' (only t-1 values are valid) N*T-1 (back_likelihood))
+# gamma_m = expectation prob of Si -> Sj N*T-1
+# xi_m = expectation prob of Si N*T-1
 
 Initialize()
   Args:
 	  Observations[]
-	  starting_model of type lambda
+	  starting_model
 	Returns
-	  starting_model of type lambda 
+	  starting_model 
 	
-	Obtain observation(s) (strings, containing lists of letters/strings with emissions)
-	Create alphabet for emissions (length of this alphabet = M)
-	Create hidden states (length # of states = N)
-	If starting_model == ""
-	  starting_model = some_default_mod()
-	return starting_model
+	* Obtain observation(s) 
+	* Create_alphabet for emissions 
+	* setup matrices, current_model
 
-Setup_for_loop()
-  Args
-	  Obs - list of observed states 
-	  Model - type lambda ; can't be hmm.
-  Returns:
-    hmm class
+Create_alphabet(observations[])
+    creates alphabet given a list of observations
+    returns alphabet of emissions
     
-    hmm = hmm.class # Create/initialize our hmm class with name, etc.
+    * for obs in observations[]
+        all_states += obs
+    * return sort(set(all_states))
     
-    confirm sum(himm[init]matrix) = 1
-    confirm trans_to appropriate cols/rows sum to 1
-    confirm emission appropriate cols/rows sum to 1
-    scale if needed!
+Create_emission_probs(alphabet,state_list)
+    creates emisission list
+    for state in state_list
+    create list of emission probs
+
+create_init_probs()
+    creates init_probs for a model (may just set them)
+    for state in state_list
+        create init prob for the state
+
+create_trans_to_probs(state_list)
+    creates trans_to probs for a model (may just set them)
+    for state in state list
+        create list of state probs
     
-    put the matrices into the hmm
-    
-    return(hmm)
-    
-BaumWelch()
-  '''
+run_baum_welch(observations,max_loop_count,epsilon)
 	Args:
+	starting_model (which has already been initialized by HMM?)
     observations[]
     max_loop_count
     epsilon
-    starting_model optional lambda type default=""
-	    
+
 	Returns
     current_model from last hmm run through loop 
-  '''
+    #Note: 
+    # current_HMM - will be our base model in hmm
+    #.  current_log_likelihood
+    # new_model - will be the one that we are comparing to it.
+        new_log_likelihood
+    #
+    # we will be getting multiple observations to train our model on.
   
-  #Note:  during this in some places I will refer to hmm and in others current_matrix
-  # this signifies that I have not decided how I want to do this yet... 
-  # new_model can just be a "dictionary" with the current vector,matrix,matrix triplet
-  # and associated new_log_likelihood as if it is not better than current, we ditch it.
-  # it may be that we just need "one more than N" hmm -- that one could be used as the 
-  # "new_model" and used for comparisons, resetting values each time we go through the FOR
-  # loop.
-    
-    starting_model = Initialize(observations[,],starting_model)
+    setup(current_model,current_log_likelihood)
+    set new_log_likelihood, new_model
 
-    curr_HMM = Setup(observations[0],starting_model) # hmm now contains the current_model
-    current_log_likelihood = fast_forward(obs,starting_model)
-    loop_count = 0
+    # other setup for loops/counts here
+    while_loop_count = 0
+    changed_model = 0
+    added_log_probs = 0
     
-    for i, obs in enumerate(observations[]) (starting at 0 going to len(observations[]))
+    while (loop_count <= max_loop_count) # note convergence is tested below
+        
+        for i, obs in enumerate(observations[])
+        
+            current_log_lhood, gamma_m, xi_m = EStep(obs,curr_hmm) # on curr_HMM
+            new_model = Mstep(obs, gamma_m, xi_m)
+            
+            new_log_lhood, new_gamma_m, new_xi_m = EStep(obs,new_model)
+            
+            #Now check for convergence!
+            match compare_likelihood(current_log_lhood, new_log_lhood, epsilon) 
+                case GT: # better than old model
+                    current_model = new_model 
+                    # ? update hmm????
+                    # current_log_lhood will be updated the next time we go through the loop
+                    loop_count = 0 # reset for new_model checking
+                    changed_model += 1
+                    added_log_probs += new_log_lhood
+                case LT:
+                    # keep current_model
+                    loop_count =+ loop_count
+                case EQ:
+                    # keep current_model
+                    # exit go on to the next observation in the list
+            
+        # end of for loop
+        
+        if (changed_model > 0)
+            We need to scale/normalize here with added_log_probs and changed_model
+            changed_model = 0 # reset because we've adjusted for it
+            added_log_probs = 0 # reset
+                
+    #end of while loop; we found our local maximum
     
-      while (loop_count <= max_loop_count) # note convergence is tested below
-        
-        current_log_likelihood, gamma_matrix, xi_matrix = EStep(obs,curr_hmm) # on curr_HMM
-        
-        new_model = Mstep(obs,gamma_matrix,xi_matrix)
-        new_log_likelihood = fast_forward(obs,new_model)
-        
-                #Now check for convergence!
-        match compare_likelihood(current_log_likelihood, new_log_likelihood,epsilon) 
-        case GT: # better than old model
-          current_model = new_model # update hmm here!
-          loop_count = 0 # reset for new_model checking
-        case LT:
-          # keep current_model
-          loop_count =+ loop_count
-        case EQ:
-          # keep current_model
-          break # exit while loop to go on to the next observation in the list
-        #end of while loop; we found our local maximum, now we go on to the next observation
-
-      if we haven't gone through all the observations then
-        #Initialze for next run through the model with the next observation, create a new hmm  
-        
-        # we could save the old hmm in a list here if we wanted....
-        # OR we could just reuse the old HMM with the new model by re-initializing?
-        # OR we could just create a new instance of hmm and forget the old one existed
-        HMM = Setup(obs[i+1],current_model) # for the next obs; start with current_model
-        loop_count = 0 # reset loop count to zero
-        
-      # end while loop
-    #end for loop
-    
-    return(hmm.however_we're_going_to_output_lambda.current_model)  
+    return(hmm.however_we're_going_to_output_current_model)  
 	
-EStep(obs, hmm) # aka 'forwardbackward' pass
-  Args: 
+EStep(obs, hmm) # aka 'Expectation setp'
     obs
     current_hmm # we need init_probs,trans_to,emissions
   Returns
-    log_likelihood (from forward run)
-    gamma_matrix
-    xi_matrix
+    log_lhood (from average of forward&backward run)
+    gamma_m
+    xi_m
     
-  alpha_matrix, log_likelihood=forward(obs,?model) #self is set up with current_model
+  alpha_m, f_log_lhood = run_forward(obs) #self is set up with current_model
   
-  beta_matrix = backward(obs,?model)
+  beta_m, b_log_lhood = run_backward(obs) # self is set up with this.
   
-  gamma_matrix = alpha_matrix + beta_matrix
+  log_lhood = np.addsumlog(f_log_lhood,b_log_lhood) - 2 # log math averaging
+  
+  gamma_matrix = alpha_m + beta_m - log_lhood
     
-  get A_matrix # hmm."self.trans_to" NEED_IN log_matrix form
-  get B_matrix # hmm."self.emissions" NEED IN log_matrix form
+  get A_m # hmm."self.trans_to" NEED_IN log_matrix form
+  get B_m # hmm."self.emissions" NEED IN log_matrix form
     
-  xi_matrix = alpha_matrix + A_matrix + B_matrix + beta_matrix
+  xi_m = (alpha_m + A_m + B_m + beta_m) - 
+              (summation of blah blah)
     
-  #	Normalize the matrices we're sending back
-  gamma_norm = gamma_matrix - current_log_likelihood
-	xi_norm = xi_matrix - current_log_likelihood
+  xi_norm_m = xi_matrix - log_lhood # is this normalizing xi????
 	
-	return(log_likelihood,gamma_norm,xi_norm)
+  return(log_likelihood,gamma_norm,xi_norm_m)
 
-MStep()
-  Args
-    obs
-    gamma_matrix
-    xi_matrix
-    
+MStep(obs,gamma_m,xi_m)
   Returns
-    hat_init
-    hat_A_matrix
-    hat_B_matrix
+    new_model
     
-  # We need init_probs, A_matrix and B_matrix in order to create the next model
+  # We need init_probs, A_m and B_m in order to create the next model
   
   hat_init = gamma(0,i) # the row/column of the inital matrix!
  
-  A_denom = logsum_shenanigans_summation(gamma_matrix(1 to T-1,"i")) ???? check the equations
-  A_numerator = logsum_shenanigans_summation(xi_matrix(1 to T-1,"[i,j]") ??? check equations
-  hat_A_matrix = A_numerator - A_denom
+  A_denom = logsum_shenanigans(gamma_m(1 to T-1,"i"))
+  A_numerator = logsum_shenanigans(xi_matrix(1 to T-1,"[i,j]")
+  hat_A_m = A_numerator - A_denom
 
-  B_denom = gamma("1 to T","j") # check the equations
-  B_numerator = logsum_shenanigans_summation(gamma("1 to T","j")) # check the equations
-  hat_B_matrix B_numerator - B_denom
+  B_denom = gamma_m("1 to T","j") 
+  B_numerator = logsum_shenanigans(gamma_m("1 to T","j")) # check the equations
+  hat_B_m = B_numerator - B_denom
   
-  new_model = set_model(hat_init, hat_A_matrix, hat_B_matrix)
+  new_model = set_model(hat_init, hat_A_m, hat_B_m)
   return(new_model)
 #end M-Step
 
 set_model(pi,A,B)
-  ''' Creates a model dictionary lambda from pi,A, and B
+  ''' sets a model to have new init_probs, trans_to, emission_probs from
+    pi, A_m, and B_m
   Args:
     pi: vector of init probabililites
-    A: matrix of trans_to probabilities
-    B: matrixs of emission probabilities
+    A: matrix N*N trans_to probabilities
+    B: matrixs N*M emission probabilities
   returns:
-    model type lambda
+    ???
   '''
   model['init'] = pi
   model['trans_to'] = A
@@ -208,29 +232,28 @@ set_model(pi,A,B)
   return(model)
 #end set_model
   
-fast_forward(obs,a_model:lambda)
-  '''Calculates the log_likelihood of a particular model and returns it.
-  Args:
-    obs: list of emissions of length T
-    a_model of type lambda with init_probs, trans_to probs and emission_probs in matrix form
-  Returns:
-    total_log_likelihood float
+logsum_shenanigans(matrix,indexes1,indexes2)
   '''
-  run 'forward' without the matrix, we only need the probability here.
+  Args:
+    given a matrix (could be alpha,beta,gamma,xi) 
+        N = len(states_list)
+        T = len(obs)
+        alpha_m: N * T
+        beta_m: N * T-1
+        gamma_m: N * T-1
+        xi_m N * T-1 
+  returns 
+    addsumexp of the two values from that matrix
   
-logsum_shenanigans_summation(matrix,index1,index2)
-  '''
-  Args:
-    given a matrix (alpha,beta,gamma,xi) matrix of (N*N) of _LOG SPACE_ probabilities
-    
-  # NOT SURE WHAT TO DO HERE YET need to know math for M-step first.
+  matrix.dims
+  check that indexes1, indexes2 is appropriate for the matrix dims.
   
 
 some_default_model(num_states,num_emissions)
-  ''' creates a dictionary of type lambda
+     creates a dictionary of type lambda
   returns:
     default_model type lambda
-  '''
+ 
   # set default_model init to have 2D vector 1*N 
   equal_state_log_probs = log( 1/num_states )
   init_probs = np.fill(...length=max_states,fill=equal_state_log_probs)
@@ -252,7 +275,7 @@ compare_likelihood(current,new,epsilon)
   Returns:
     comparitor = EQ (1) or GT (2) or LT (0) # defined as global constants
 
-  diff = new - current
+  diff = new - current 
   if (diff > epsilon)
     return(GT)
   elif (diff < epsilon)
@@ -275,4 +298,4 @@ Group leader's reflection on the project
 Other members' reflections on the project
 
 # Generative AI Appendix
-As per the syllabus
+
