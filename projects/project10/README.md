@@ -7,7 +7,9 @@
 Description of the project
 
 # Current todo list:
-    * Need to find out why matrices are not being returned properly ?copy
+    X Need to find out why matrices are not being returned properly ?copy
+    
+    * Compare function isn't working properly?
 
     * !!! we need a way of breaking out of both the for loop and the while loop (other than max_loop)
     
@@ -15,7 +17,7 @@ Description of the project
             looked at all of observations in our training list
     
     * Math issues:
-        ** make sure that we are only using:
+        X make sure that we are only using:
             beta[t-1], gamma[t-1], xi[t-1]
     
         ** Scaling?  (see if (changed_model > 0) in while/for loop in run_baum_welch
@@ -27,15 +29,13 @@ Description of the project
                     in loop in run_baum_welch at "changed_model > 0"
     
     * how do we update the HMM model when current is updated>
+    * related to above - is the model being updated at all?
     
     * We need a way of initializing the model properly -- should 
         <done-ish> create a function that creates alphabet,etc. and then sends the
         <done-ish> we could just initilize with baseline probabilities (based on the number of emissions in the alphabet - divide by one, etc, etc.)
         * We are going to have to have the hidden states set up as well.
    
-         
-
-
     * low priority some_default_model is not really implemented
    
     * Testing!
