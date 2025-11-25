@@ -231,11 +231,16 @@ class HMM:
   #    may need to keep track of -- how many times have we run E-Step/M-Step
   #                              -- scale of how much it's changed?????
   #
-
+    if TESTING: print(f"Starting Baum Welch")
     current_init_v = self.bw_get_init_probs()
     current_trans_to_m = self.bw_get_trans_to_probs()
     current_emissions_m = self.bw_get_emission_probs()
     current_log_lhood, alpha_m, beta_m = self.bw_get_log_lhood(observations[0],return_matrix=True)
+    if TESTING: print(f"init: {current_init_v}")
+    if TESTING: print(f"trans: {current_trans_to_m}")
+    if TESTING: print(f"emit: {current_emissions_m}")
+    if TESTING: print(f"alpha: {alpha_m}")
+    if TESTING: print(f"beta: {beta_m}")
     
     new_init_v = current_init_v # initially set up new_model to be the same as current
     new_trans_to_m = current_trans_to_m
@@ -247,31 +252,32 @@ class HMM:
     added_log_probs = 0
   
     while (loop_count <= max_loop_count): # note convergence is tested below
-        for i, obs in enumerate(observations[0]):
+      if TESTING: print(f"In while loop, loop_count={loop_count}, current_likelihood: {current_log_lhood}")
+      for i, obs in enumerate(observations[0]):
         
-            new_log_lhood, gamma_m, xi_m = self.bw_EStep(obs, new_init_v, new_trans_to_m, new_emissions_m)
-            new_init_v, new_trans_to_m, new_emissions_m = self.bw_MStep(obs, gamma_m, xi_m)
-            
+        new_log_lhood, gamma_m, xi_m = self.bw_EStep(obs, new_init_v, new_trans_to_m, new_emissions_m)
+        new_init_v, new_trans_to_m, new_emissions_m = self.bw_MStep(obs, gamma_m, xi_m)
+        
+        print(f"gamma_m: {gamma_m}")    
             #Now check for convergence!
-            compared = self.bw_compare_likelihood(current_log_lhood,new_log_lhood, epsilon)
-            match self.bw_compare_likelihood(current_log_lhood,new_log_lhood, epsilon):
-                case x if x==GT: # better than old model
-                    current_init_v = new_init_v
-                    current_trans_to_m = new_trans_to_m
-                    current_emissions = new_emissions_m
-                    current_log_lhood = new_log_lhood
-                    # ? update hmm????
-                    # current_log_lhood will be updated the next time we go through the loop
-                    loop_count = 0 # reset for new_model checking
-                    changed_model += 1
-                    added_log_probs += new_log_lhood
-                case x if x==LT:
-                    # keep current_model
-                    loop_count += 1
-                case x if x==EQ:
-                    # keep current_model
-                    print("made it to EQ!!!!")
-                    # break would exit the for loop we just go on to the next observation in the list
+        compared = self.bw_compare_likelihood(current_log_lhood,new_log_lhood, epsilon)
+        match self.bw_compare_likelihood(current_log_lhood,new_log_lhood, epsilon):
+          case x if x==GT: # better than old model
+            current_init_v = new_init_v
+            current_trans_to_m = new_trans_to_m
+            current_emissions = new_emissions_m
+            current_log_lhood = new_log_lhood
+            # ? update hmm????
+            # current_log_lhood will be updated the next time we go through the loop
+            loop_count = 0 # reset for new_model checking
+            changed_model += 1
+            added_log_probs += new_log_lhood
+          case x if x==LT:
+            # keep current_model
+            loop_count += 1
+          case x if x==EQ:
+            # keep current_model
+            break # would exit the for loop we just go on to the next observation in the list
         # end of for loop
         
         if (changed_model > 0): # if we changed the model in the for loop
@@ -282,7 +288,8 @@ class HMM:
                 
     #end of while loop; we found our local maximum
     
-    return(init_probs,trans_probs,emit_probs) 
+    return(current_init_v,current_trans_to_m,current_emissions) 
+  
 	
   def bw_EStep(self, obs, pi_m, A_m, B_m): # aka 'Expectation setp'
     ''' Expectation step of Baum-Welch -- needs a single observation,
@@ -297,68 +304,118 @@ class HMM:
       gamma_m:   matrix in log_space of the probability of a particular state to another state
       xi_m: matrix in log_space of the expectation probabilty of being in a particular state
     '''
-    avg_log_lhood, alpha_m, beta_m = self.bw_get_log_lhood(obs,return_matrix=True)
+    avg_log_lhood, alpha_m, beta_m = self.bw_get_log_lhood(obs,return_matrix=True) #run forward & backward!
   
+    # for our example:
+    # pi or init is N state probabilities
+    # A_m is 2x2 N x N
+    # B_m is 2x4 N x M
+    # alpha_m should be N x len(obs) T
+    # beta_m should be N x len(obs) T
+    
+    # gamma_m is easy (alpha_m + beta_m) - avg_log_lhood (scalar)
+    # this is the probability from transisition from Si -> Sj 
+    #    where Si and Sj are states in observation sequence at pos i and j
+    # gamma_m = alphpa_m*beta_m/avg_log_lhood or in log space:
+    # gamma_m = alpha_m + beta_m - avg_log_lhood  which is N x T matrix
+    
     gamma_m = alpha_m + beta_m - avg_log_lhood
     
-    # NEED TO ADD IN A_m and B_m here!!!!
-    xi_m = (alpha_m + beta_m) - avg_log_lhood
+    # xi_m is the probability of being in state Si at time t and state Sj at time t+1 
+    # will need three dimensional array
+    # xi[i,j,t] = P(q_t = i, q_t+1 = j given obs & 'model')
+    # xi_num (alpha_m(i,t) + beta_m(j,t+1)) + A_m[i][j] + B_m(O_t+1,j)
+    
+    T = len(obs)
+    N = len(self.states)
+    
+    xi_m = np.zeros((T-1, N, N))
+    
+    for t in range(T-1):
+        # Denominator: P(O | model) = sum over all states at time t
+        denominator = 0.0
+        for i in range(N):
+            for j in range(N):
+                emit=obs[t+1]
+                B_j_obs_t_plus1 = self.states[j].emission_probs[emit]
+                denominator += alpha_m[t, i] + A_m[i, j] + B_t1_obs_k + beta_m[t+1,j]
+        
+        # Compute xi for all state pairs
+        for i in range(N):
+            for j in range(N):
+                B2_j_obs_t_plus1 = self.states[j].emission_probs[obs[t+1]]
+                numerator = alpha_m[t,i] + A_m[i,j] + B2_j_obs_t_plus1 + beta[t+1, j]
+                xi_m[t, i, j] = numerator - denominator # more log math!
 	
     return(avg_log_lhood,gamma_m,xi_m)
 
   def bw_MStep(self, obs, gamma_m, xi_m):
     ''' 
     Args:
-      gamma_m
-      xi_m
+      gamma_m # P of going from Si to Sj 
+      xi_m # P of being in Si at time t and Sj at time t+1
     Returns
-      hat_init
-      hat_A_m
-      hat_B_m
+      init_hat
+      A_hat_m
+      B_hat_m
     '''  
     # We need init_probs, A_m and B_m in order to create the next model
-  
-    hat_init = gamma_m[0] # the row/column of the inital matrix!
- 
-    #A_numerator = logsum_shenanigans(xi_matrix(1 to T-1,"[i,j]")
-    A_numerator = 0.5
-    #A_denom = logsum_shenanigans(gamma_m(1 to T-1,"i"))
-    A_denom = 1.0
+    N = len(obs)
+    M = len(self.emissions)
     
-    hat_A_m = A_numerator - A_denom
-
-    # B_numerator = logsum_shenanigans(gamma_m("1 to T","j"))
-    B_numerator = 1.0
-    # B_denom = gamma_m("1 to T","j") 
-    B_denom = 0.5
+    init_hat = gamma_m[0, :]
+    
+    # 2. Re-estimate A (transition matrix)
+    # A[i,j] = sum_t(xi[t,i,j]) / sum_t(gamma[t,i])
+    A_hat = np.zeros((N, N))
+    A_denom = 0
  
-    hat_B_m = B_numerator - B_denom
-
-    return(hat_init,hat_A_m,hat_B_m)
+    for i in range(N):
+        A_denom = np.logaddexp.reduce(gamma_m[:-1, i])#sum over t=0 to T-2
+        for j in range(N):
+            A_num = np.logaddexp.reduce(xi_m[:, i, j])#sum over all time
+            A_hat[i, j] = A_num - A_denom
+    
+    # 3. Re-estimate B (emission matrix)
+    # B[j,k] = sum_t(gamma[t,j] * I(o_t = k)) / sum_t(gamma[t,j])
+    B_hat = np.zeros((N, M))
+    
+    for j in range(N):
+        B_denom = np.logaddexp.reduce(gamma_m[:, j])  # sum over all time steps
+        for k, emit in enumerate(self.emissions):
+            # Sum gamma[t,j] for all t where observation is 'emit
+            B_num = self.bm_logsum_emission_probs(obs,gamma_m,j,emit)
+            B_hat[j, k] = B_num - B_denom
+    
+    return init_hat, A_hat, B_hat
     #end M-Step
-  
-  def logsum_shenanigans(matrix,indexes1,indexes2):
-    '''
+    
+  def bm_logsum_emission_probs(self,obs,gamma,index,emit):
+    '''creates sum of all of the gamma probabilities of type emit
     Args:
-      given a matrix (could be alpha,beta,gamma,xi) 
-        N = len(states_list)
-        T = len(obs)
-        alpha_m: N * T
-        beta_m: N * T-1
-        gamma_m: N * T-1
-        xi_m N * T-1 
-    returns 
-      addsumexp of the two values from that matrix
+        obs:  list of char; current sequence
+        gamma: prob of going from Si to Sj given obs and model
+        index: index into gamma that the sum is needed for.
+        emit: character that we want to sum up the probabilities for
+    Returns 
+      in log space the summ of all of prob of the 'emit' in current obs seq
     '''
-    matrix.dims
-  # check that indexes1, indexes2 is appropriate for the matrix dims.
-    return np.addsumexp(matrix[indexes1],matrix[indexes2])
+    T = len(obs)
+    running_sum = 0
+    
+    for t in range(T):
+      if (obs[t] == emit):
+        running_sum = np.logaddexp(running_sum,gamma[t,index])
+    return(running_sum)
   
 
   def some_default_model(num_states,num_emissions):
     '''
     NOT COMPLETED!!!!
-     creates a dictionary of type lambda
+    the idea was given a number of states and a number of emissions 
+    to calculate a baseline state probs and emission probs,
+    as well as init_probs
+    
     returns:
       default_model type lambda
     '''
@@ -387,7 +444,6 @@ class HMM:
     elif (diff < epsilon):
       return LT
     return EQ
-
     
   def run_forward(self, observations, return_matrix = False):
     """
@@ -594,7 +650,6 @@ class HMM:
     # backpointers.
     for obs_i, observation in enumerate(observations[1:], start=1): # skip col 0
       prior_path_probs = v_matrix[:,obs_i-1] # vector representing last column in v_matrix
-      
       for state_i, current_state in enumerate(self.states):
         trans_here_probs = [prior_state.transition_to[current_state.name] for prior_state in self.states] # vector
       
