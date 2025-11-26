@@ -8,41 +8,18 @@ Description of the project
 
 # Current todo list:
     TODO:
-    * Math
-        * SCALING in run_baum_welch; when do we decrease in the loop (after the for loop???)
-            * may need to keep track of how many times we've updated to scale?
-        * A_matrix is getting huge 
-        
     * how do we update the HMM model when current is updated>
-    * related to above - is the model being updated at all? 
         ** Not really using the "object oriented nature" of what we've done.
            Only thing I'm using is the emissions_probs...
            
     * do we need to initialize the model with other values?
-        * create an alphabet?
+        * I would do this outside of the bw_stuff and in the hmm code supports.
+        * create an alphabet? (started bw_create_alphabet)
         * create default entries for hidden states and initialization states?
         
-    * I'm getting numbers but I have no idea if they are correct or not!
-
-    DONE:    
-    X Need to find out why matrices are not being returned properly ?copy
+    * I'm getting numbers but I have no idea if they are correct or not
     
-    X Compare function isn't working properly?
-    
-    X Why are the returned matrices the wrong dimensions??????
-
-    X !!! we need a way of breaking out of both the for loop and the while loop (other than max_loop)
-    
-    X will need to add the probabilities after we have (part of the training)
-            looked at all of observations in our training list
-    
-    X Math issues:
-        X make sure that we are only using:
-            beta[t-1], gamma[t-1], xi[t-1]
-    
-            X keeping it in log space helps, but is not all we need to do?
-            changed
-    
+    * Marcus suggested that if we wanted to use this to do something research worthy he would be impressed, but I really don't have any ideas on this subject
         
 # Pseudocode
 Put pseudocode in this box:
