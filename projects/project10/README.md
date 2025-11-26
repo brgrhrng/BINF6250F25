@@ -7,39 +7,42 @@
 Description of the project
 
 # Current todo list:
+    TODO:
+    * Math
+        * SCALING in run_baum_welch; when do we decrease in the loop (after the for loop???)
+            * may need to keep track of how many times we've updated to scale?
+        * A_matrix is getting huge 
+        
+    * how do we update the HMM model when current is updated>
+    * related to above - is the model being updated at all? 
+        ** Not really using the "object oriented nature" of what we've done.
+           Only thing I'm using is the emissions_probs...
+           
+    * do we need to initialize the model with other values?
+        * create an alphabet?
+        * create default entries for hidden states and initialization states?
+        
+    * I'm getting numbers but I have no idea if they are correct or not!
+
+    DONE:    
     X Need to find out why matrices are not being returned properly ?copy
     
-    * Compare function isn't working properly?
-
-    * !!! we need a way of breaking out of both the for loop and the while loop (other than max_loop)
+    X Compare function isn't working properly?
     
-    * will need to add the probabilities after we have (part of the training)
+    X Why are the returned matrices the wrong dimensions??????
+
+    X !!! we need a way of breaking out of both the for loop and the while loop (other than max_loop)
+    
+    X will need to add the probabilities after we have (part of the training)
             looked at all of observations in our training list
     
-    * Math issues:
+    X Math issues:
         X make sure that we are only using:
             beta[t-1], gamma[t-1], xi[t-1]
     
-        ** Scaling?  (see if (changed_model > 0) in while/for loop in run_baum_welch
-            a. keeping it in log space helps, but is not all we need to do?
-            b. Consider:
-                i. may need to keep track of how many times the models is changed?
-                ii. may need to keep track of how many times the likelihood is changed
-                iii. may need to adjust by one or both of these factors
-                    in loop in run_baum_welch at "changed_model > 0"
+            X keeping it in log space helps, but is not all we need to do?
+            changed
     
-    * how do we update the HMM model when current is updated>
-    * related to above - is the model being updated at all?
-    
-    * We need a way of initializing the model properly -- should 
-        <done-ish> create a function that creates alphabet,etc. and then sends the
-        <done-ish> we could just initilize with baseline probabilities (based on the number of emissions in the alphabet - divide by one, etc, etc.)
-        * We are going to have to have the hidden states set up as well.
-   
-    * low priority some_default_model is not really implemented
-   
-    * Testing!
-        
         
 # Pseudocode
 Put pseudocode in this box:

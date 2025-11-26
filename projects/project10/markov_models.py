@@ -83,13 +83,6 @@ class HMM:
       self.states.append(new_state)
       
   
-  def bw_setup_baum_welch(self, observations):
-    """
-    Place holder -- currently we will be sending in our initial setup in through
-    the same method we used for all of our other HMM functions (with init, trans_to and emissions)
-    """
-    print("Function setup_baum_welch is not setup yet")
-  
   def bm_initialize_new_hmm(self):
     ''' Given a self hmm model; initializes a new model with the same settings
     Args:
@@ -238,62 +231,45 @@ class HMM:
   #    may need to keep track of -- how many times have we run E-Step/M-Step
   #                              -- scale of how much it's changed?????
   #
-  
-    if TESTING: print(f"Starting Baum Welch")
     current_init_v = self.bw_get_init_probs()
     current_trans_to_m = self.bw_get_trans_to_probs()
     current_emissions_m = self.bw_get_emission_probs()
     current_log_lhood, alpha_m, beta_m = self.bw_get_log_lhood(observations[0],return_matrix=True)
-    if TESTING: print(f"init: {np.exp(current_init_v)}")
-    if TESTING: print(f"trans: {np.exp(current_trans_to_m)}")
-    if TESTING: print(f"emit: {np.exp(current_emissions_m)}")
-    if TESTING: print(f"alpha: {np.exp(alpha_m)}")
-    if TESTING: print(f"beta: {np.exp(beta_m)}")
     
-    new_init_v = current_init_v # initially set up new_model to be the same as current
-    new_trans_to_m = current_trans_to_m
-    new_emissions_m = current_emissions_m
-    
-    # other setup for loops/counts here
+    if TESTING: print(f"run_baum_welch: init size: {current_init_v}, trans size: {current_trans_to_m}, emission size {current_emissions_m}")
     loop_count = while_loop_count = 0
     changed_model = 0
     added_log_probs = 0
+    log_epsilon = np.log(epsilon)
   
     while (loop_count <= max_loop_count): # note convergence is tested below
-      for i, obs in enumerate(observations):
+      
+      new_log_lhood = 0 # this is in log_space!
+      
+      for i, obs in enumerate(observations): # for each of our sequences; train...
         
-        new_log_lhood, gamma_m, xi_m = self.bw_EStep(obs, new_init_v, new_trans_to_m, new_emissions_m)
+        seq_log_lhood, gamma_m, xi_m = self.bw_EStep(obs, current_init_v, current_trans_to_m, current_emissions_m)
+        
         new_init_v, new_trans_to_m, new_emissions_m = self.bw_MStep(obs, gamma_m, xi_m)
         
-            #Now check for convergence!
-        match self.bw_compare_likelihood(current_log_lhood,new_log_lhood, epsilon):
-          case x if x==GT: # better than old model
-            current_init_v = new_init_v
-            current_trans_to_m = new_trans_to_m
-            current_emissions_m = new_emissions_m
-            current_log_lhood = new_log_lhood
-            # ? update hmm????
-            # current_log_lhood will be updated the next time we go through the loop
-            loop_count = 0 # reset for new_model checking
-            changed_model += 1
-            added_log_probs += new_log_lhood
-          case x if x==LT:
-            # keep current_model
-            loop_count += 1
-          case x if x==EQ:
-            # keep current_model
-            break # would exit the for loop we just go on to the next observation in the list
-        # end of for loop
+        new_log_lhood = np.logaddexp(seq_log_lhood,new_log_lhood)
         
-        if (changed_model > 0): # if we changed the model in the for loop
-          print(f"changed the model {changed_model} times, and added {added_log_probs}")  
-           # We need to scale/normalize here with added_log_probs and changed_model
-          changed_model = 0 # reset because we've adjusted for it
-          added_log_probs = 0 # reset
-                
-    #end of while loop; we found our local maximum
+        if np.abs(new_log_lhood - current_log_lhood) < log_epsilon: #Check for convergence!
+          # we have found the local maximum
+          print(f"Converged after {loop_count} iterations, log_lhood: {new_log_lhood}")
+          return(np.exp(new_init_v),np.exp(new_trans_to_m),np.exp(new_emissions_m))
+        else:
+          current_init_v = new_init_v
+          current_trans_to_m = new_trans_to_m
+          current_emissions_m = new_emissions_m
+          if TESTING: print(f"in while/for: init size: {current_init_v}, trans size: {current_trans_to_m}, emission size {current_emissions_m}")
+      #end for loop
     
-    
+      # scale 
+      loop_count += 1 
+    #end of while loop; now we will export the best we have
+ 
+    if TESTING: print(f"BW_final:  init size: {current_init_v}, trans size: {current_trans_to_m}, emission size {current_emissions_m}")
     return(np.exp(current_init_v),np.exp(current_trans_to_m),np.exp(current_emissions_m)) 
   
 	
@@ -353,7 +329,7 @@ class HMM:
                 numerator = alpha_m[i,t] + A_m[i,j] + B2_j_obs_t_plus1 + beta_m[j,t+1]
                 
                 xi_m[t, i, j] = numerator - denominator # more log math!
-                 
+                
     return(avg_log_lhood,gamma_m,xi_m)
 
   def bw_MStep(self, obs, gamma_m, xi_m):
@@ -371,22 +347,25 @@ class HMM:
     N = len(self.states)
     M = len(self.emissions)
     
-    init_hat = gamma_m[0, :]
+    # 1 Re-estimate pi (init_probs)
+    init_hat = gamma_m[:,0]
+    
+
     
     # 2. Re-estimate A (transition matrix)
     # A[i,j] = sum_t(xi[t,i,j]) / sum_t(gamma[t,i])
-    A_hat = np.zeros((N, N))
+    A_hat = np.ndarray((N,N))
     A_denom = 0
  
     for i in range(N):
-        A_denom = np.logaddexp.reduce(gamma_m[:-1, i])#sum over t=0 to T-2
+        A_denom = np.logaddexp.reduce(gamma_m[i, :-1])#sum over t=0 to T-2
         for j in range(N):
             A_num = np.logaddexp.reduce(xi_m[:, i, j])#sum over all time
-            A_hat[i, j] = A_num - A_denom
-    
+            A_hat[i,j] = A_num - A_denom
+
     # 3. Re-estimate B (emission matrix)
     # B[j,k] = sum_t(gamma[t,j] * I(o_t = k)) / sum_t(gamma[t,j])
-    B_hat = np.zeros((N, M))
+    B_hat = np.ndarray((N,M))
     
     for j in range(N):
         B_denom = np.logaddexp.reduce(gamma_m[:, j])  # sum over all time steps
@@ -415,44 +394,26 @@ class HMM:
       if (obs[t] == emit):
         running_sum = np.logaddexp(running_sum,gamma[index,t])
     return(running_sum)
-  
-
-  def some_default_model(num_states,num_emissions):
-    '''
-    NOT COMPLETED!!!!
-    the idea was given a number of states and a number of emissions 
-    to calculate a baseline state probs and emission probs,
-    as well as init_probs
-    
-    returns:
-      default_model type lambda
-    '''
-  
-  # set default_model init to have 2D vector 1*N 
-    equal_state_log_probs = log( 1/num_states )
-#  init_probs = np.fill(...length=max_states,fill=equal_state_log_probs)
-  
-#  trans_to = np.fill( ..length=max_states, width=max_states, fill = equal_state_log_probs))
-  
-    equal_emission_log_probs = log ( 1/num_emissions )
-    emissions = np.fill( length= max_states, width=max_emissions, fill=equal_emission_log_probs)
-  
-    default_model = set_model(init_probs,trans_to,emissions)
-  
-    return(default_model)
 
   def bw_compare_likelihood(self,current,new,epsilon):
-    '''
+    '''  Compares current likelihood to new likelihood (note these are both in log space!)
+          
+          Could use np.isclose(a,b,atol=epsilon) however, this does assume + for epsilon
+          
+          epsilon will come in as log_space (it is converted in run_baum_welch)
     Returns:
       comparitor = EQ (1) or GT (2) or LT (0) # defined as global constants
+      
+      
     '''
-    diff = new - current 
-    if (diff > epsilon):
-      return GT
-    elif (diff < epsilon):
-      return LT
-    return EQ
-    
+    if TESTING: print(f"bw_compare_likelihood: {np.exp(current)}, {np.exp(new)}, {np.isclose(current,new,epsilon)}")
+    if (np.isclose(current,new,epsilon)):
+      return(EQ)
+    elif (current > new):
+      return(GT)
+    return(LT)
+      
+      
   def run_forward(self, observations, return_matrix = False):
     """
     Calculate the probability of a sequence of observations given this
@@ -761,8 +722,8 @@ if TESTING:
 
   print("TEST")
   
-  our_loop_max = 100
-  our_epsilon = 0.001
+  our_loop_max = 3
+  our_epsilon = 0.00001
   new_init, new_trans, new_emit = test_HMM.run_baum_welch(observations,our_loop_max,our_epsilon)
   
   print(f"Baum Welch Recalculated")
