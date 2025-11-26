@@ -218,58 +218,86 @@ class HMM:
                     
     """
   # variables that end in _m are matrices
-  #                end in _v is a 1D matrix (init_probs, slices of matrices)
+  #                end in _v is a 1D matrix (init_probs)
   #                end in _p is a log state probability (single float)
   #
   # variables labled "current_" are the current baseline matrices/varables
-  # variables labeld "new_" are the new state baseline matrices/varables 
+  # variables labeld "seq_" or "sum_seq" are the updated versions from training. 
   #
-  # in our loop we will need to keep track of:
-  #    current_log_lhood_p.  this is the average of the forward/backward function likelihood
-  #    new_log_lhood_p 
-  #  
-  #    may need to keep track of -- how many times have we run E-Step/M-Step
-  #                              -- scale of how much it's changed?????
+  # Basic plan is:
   #
+  # Initialize
+  # while loop to iterate many, many times.
+  #   for loop to train over sequences
+  #     using Estep & Mstep calculate new model for seq
+  #     sum_seq_lhood, and seq_model matrices
+  #   scale back sum_seq and seq_model matrices
+  #   check for convergence
+  #     break loop with current model if converged
+  #   if not converged - reset for next while loop iteration
+  # return(current model)
+  #
+  
+    # Initialize
     current_init_v = self.bw_get_init_probs()
     current_trans_to_m = self.bw_get_trans_to_probs()
     current_emissions_m = self.bw_get_emission_probs()
-    current_log_lhood, alpha_m, beta_m = self.bw_get_log_lhood(observations[0],return_matrix=True)
+    current_log_lhood = self.bw_get_log_lhood(observations[0],return_matrix=False)#baseline
     
-    if TESTING: print(f"run_baum_welch: init size: {current_init_v}, trans size: {current_trans_to_m}, emission size {current_emissions_m}")
-    loop_count = while_loop_count = 0
-    changed_model = 0
-    added_log_probs = 0
-    log_epsilon = np.log(epsilon)
+    N = len(self.states)
+    M = len(self.emissions)
+    
+    sum_seq_init_v = np.ndarray((N,1))
+    sum_seq_trans_to_m = np.ndarray((N,N))
+    sum_seq_emissions_m = np.ndarray((N,M))
+    
+    loop_count = 0  # 'while' loop counter
+    log_epsilon_p = np.log(epsilon) # convert prob to log_prob
   
-    while (loop_count <= max_loop_count): # note convergence is tested below
+    # while loop to iterate over training step many times or until converges
+    while (loop_count <= max_loop_count):
       
-      new_log_lhood = 0 # this is in log_space!
+      updated_model = 0 # initialize count of how many times we update our seq_model
+      new_log_lhood = -np.inf           # this is zero in log_space
+      new_init_v = np.full((1,N),-np.inf)
+      new_trans_to_m = np.full((N,N),-np.inf)
+      new_emissions_m = np.full((N,M),-np.inf)
       
+      # train on the sequences
       for i, obs in enumerate(observations): # for each of our sequences; train...
         
+        # Calculate seq model for this sequence
         seq_log_lhood, gamma_m, xi_m = self.bw_EStep(obs, current_init_v, current_trans_to_m, current_emissions_m)
         
-        new_init_v, new_trans_to_m, new_emissions_m = self.bw_MStep(obs, gamma_m, xi_m)
-        
-        new_log_lhood = np.logaddexp(seq_log_lhood,new_log_lhood)
-        
-        if np.abs(new_log_lhood - current_log_lhood) < log_epsilon: #Check for convergence!
-          # we have found the local maximum
-          print(f"Converged after {loop_count} iterations, log_lhood: {new_log_lhood}")
-          return(np.exp(new_init_v),np.exp(new_trans_to_m),np.exp(new_emissions_m))
-        else:
-          current_init_v = new_init_v
-          current_trans_to_m = new_trans_to_m
-          current_emissions_m = new_emissions_m
-          if TESTING: print(f"in while/for: init size: {current_init_v}, trans size: {current_trans_to_m}, emission size {current_emissions_m}")
+        seq_init_v, seq_trans_to_m, seq_emissions_m = self.bw_MStep(obs, gamma_m, xi_m)
+
+        # summarize liklihood as well as sequence models
+        if np.isinf(seq_log_lhood) == False:
+          updated_model += 1 # count the number of times this was updated
+          new_log_lhood = np.logaddexp(new_log_lhood,seq_log_lhood)
+          new_init_v = np.logaddexp(new_init_v,seq_init_v)
+          new_trans_to_m = np.logaddexp(new_trans_to_m,seq_trans_to_m)
+          new_emissions_m = np.logaddexp(new_emissions_m, seq_emissions_m)
       #end for loop
-    
-      # scale 
-      loop_count += 1 
-    #end of while loop; now we will export the best we have
- 
-    if TESTING: print(f"BW_final:  init size: {current_init_v}, trans size: {current_trans_to_m}, emission size {current_emissions_m}")
+      
+      # time to scale back by the number of times I increased new_lhood and 'new model'
+      if updated_model:
+        new_log_lhood -= np.log(updated_model)
+        new_init_v -= np.log(updated_model)
+        new_trans_to_m -= np.log(updated_model)
+        new_emissions_m -= np.log(updated_model)
+        
+      #check for convergence
+      if np.abs(new_log_lhood) - np.abs(current_log_lhood) < log_epsilon_p:
+        print(f"Converged {loop_count} iterations to local maximum, log_lhood: {new_log_lhood}")
+        return(np.exp(new_init_v),np.exp(new_trans_to_m),np.exp(new_emissions_m))
+      else: # reset for next 'while' loop run
+        current_init_v = new_init_v
+        current_trans_to_m = new_trans_to_m
+        current_emissions_m = new_emissions_m
+        loop_count += 1
+
+    #end of while loop; now we will export current model in prob space
     return(np.exp(current_init_v),np.exp(current_trans_to_m),np.exp(current_emissions_m)) 
   
 	
@@ -292,6 +320,7 @@ class HMM:
     # B_m is 2x4 N x M
     # alpha_m should be N x len(obs) T
     # beta_m should be N x len(obs)   
+    
     T = len(obs)
     N = len(self.states)
     
@@ -302,7 +331,7 @@ class HMM:
     #    where Si and Sj are states in observation sequence at pos i and j
     # gamma_m = alphpa_m*beta_m/avg_log_lhood or in log space:
     # gamma_m = alpha_m + beta_m - avg_log_lhood  which is N x T matrix
-    gamma_m = np.array((N,T))
+    gamma_m = np.ndarray((N,T))
     
     gamma_m = alpha_m + beta_m - avg_log_lhood
     
@@ -310,7 +339,7 @@ class HMM:
     # will need three dimensional array
     # xi[i,j,t] = P(q_t = i, q_t+1 = j given obs & 'model')
     # xi_num (alpha_m(i,t) + beta_m(j,t+1)) + A_m[i][j] + B_m(O_t+1,j)
-    xi_m = np.zeros((T-1, N, N))
+    xi_m = np.ndarray((T-1, N, N))
     
     for t in range(T-1):
         # Denominator: P(O | model) = sum over all states at time t
@@ -333,7 +362,10 @@ class HMM:
     return(avg_log_lhood,gamma_m,xi_m)
 
   def bw_MStep(self, obs, gamma_m, xi_m):
-    ''' 
+    ''' Creates new model initialization, transition matrix and emission matrix
+        given an observation and calculated probabilities in gamma_matrix and xi_matrix
+        
+        Normalization will also be done
     Args:
       gamma_m # P of going from Si to Sj 
       xi_m # P of being in Si at time t and Sj at time t+1
@@ -348,21 +380,21 @@ class HMM:
     M = len(self.emissions)
     
     # 1 Re-estimate pi (init_probs)
+    init_hat = np.ndarray((N,1))
     init_hat = gamma_m[:,0]
-    
-
     
     # 2. Re-estimate A (transition matrix)
     # A[i,j] = sum_t(xi[t,i,j]) / sum_t(gamma[t,i])
     A_hat = np.ndarray((N,N))
-    A_denom = 0
+    A_denom = np.full((N,N),-np.inf)
  
-    for i in range(N):
-        A_denom = np.logaddexp.reduce(gamma_m[i, :-1])#sum over t=0 to T-2
-        for j in range(N):
+    for i in range(N): # for each state - calculate the transitions to other states
+        A_denom = np.logaddexp.reduce(gamma_m[:-1,i])#sum over t=0 to T-2
+        for j in range(N): # calculate for each 'other' state
             A_num = np.logaddexp.reduce(xi_m[:, i, j])#sum over all time
             A_hat[i,j] = A_num - A_denom
-
+        A_hat[i,:] -= np.logaddexp.reduce(A_hat[i,:]) # confirm it's normalized
+        
     # 3. Re-estimate B (emission matrix)
     # B[j,k] = sum_t(gamma[t,j] * I(o_t = k)) / sum_t(gamma[t,j])
     B_hat = np.ndarray((N,M))
@@ -373,7 +405,8 @@ class HMM:
             # Sum gamma[t,j] for all t where observation is 'emit'
             B_num = self.bm_logsum_emission_probs(obs,gamma_m,j,emit)
             B_hat[j, k] = B_num - B_denom
-    
+        B_hat[j,:] -= np.logaddexp.reduce(B_hat[j,:]) # confirm it's normalized
+        
     return init_hat, A_hat, B_hat
     #end M-Step
     
