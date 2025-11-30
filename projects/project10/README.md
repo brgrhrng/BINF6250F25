@@ -6,24 +6,9 @@
 # Introduction
 Description of the project
 
-# Current todo list:
-    TODO:
-    * how do we update the HMM model when current is updated>
-        ** Not really using the "object oriented nature" of what we've done.
-           Only thing I'm using is the emissions_probs...
-           
-    * do we need to initialize the model with other values?
-        * I would do this outside of the bw_stuff and in the hmm code supports.
-        * create an alphabet? (started bw_create_alphabet)
-        * create default entries for hidden states and initialization states?
-        
-    * I'm getting numbers but I have no idea if they are correct or not
-    
-    * Marcus suggested that if we wanted to use this to do something research worthy he would be impressed, but I really don't have any ideas on this subject
-        
+
 # Pseudocode
 Put pseudocode in this box:
-
 ```{}
 # Global variables/constants
 EQ = 1
@@ -265,20 +250,76 @@ compare_likelihood(current,new,epsilon)
 ```
 
 # Successes
-Description of the team's learning points
+1. The idea of a particular item converging to a particular point is not difficult once
+once you not what your 'particular item' is and how your algorithm is changing it.
+2. As long as you stay consistent, doing this algorithm completely in log_math was not
+as difficult as we thought it might become.
+3. (Jacque) Did go back to the backward algorthm and fixed her issue of wanting to 
+have the backward matrix longer by one element.  Mea culpa to all.  I have verified 
+with different implementations on-line that they are done placing the probability space
+values in the t-1 position, and then starting with the t-2 position and filling down 
+until you get to the zeroth position. 
 
 # Struggles
-Description of the stumbling blocks the team experienced
+1. (Jacque) Struggled to understand the math behind the algorithm, more specifically
+during the E-Step, or the step that calculates the expected values of states in
+particular locations, the first part of that equation is the probability of at a
+particular time 't', a state having a particular Si value moving to another state (Sj)
+value in our observation sequence.   The problem was understanding part of the E-step -
+the one that calculates the probability of a particular state happening at time t with
+state j, or in other words, the probability of being in state i at time t and being 
+in state j at time t+1.  Implementing the algorithm wasn't that hard, but wrapping 
+my head around the three variables at the same time was.   
+2. (Jacque) continued to struggle with object oriented programming.  I may have spent 
+more time swearing at the fact I couldn't debug something because python considered 
+things in our class 'private'.  grrrrrr.   Unfortunately designing software when you
+don't know most of the constraints at the begining are very difficult.  I'm sure I 
+missed some opportunities to make this more object oriented.
+3. (Jacque) had difficulty wanting to break up parts of the main baum_welch loop as I 
+wasn't sure of the efficiency of constantly handing large matrices to multiple small 
+procedures.  I expect that if I had been using our hmm class object properly our 
+actual loop would be much smaller as I seemed to be constantly assigning and 
+reassigning our model (which consists of at least three things (which were basically 
+already in our hmm model).  Bascically this is just the OO issue again I expect.
+4. (Jacque) I continue to struggle with the idea of not knowing if my answer is 
+'correct' or not.  <sigh>
+5. (Jacque) pseudocode did not work out the way I had planned.
 
 # Personal Reflections
 ## Group Leader (Brooks)
 Group leader's reflection on the project
 
 ## Other member (Jacque)
-Other members' reflections on the project
+Other members' reflections on the project:
+
+Left to do in this project (but would be easy to implement):
+    1. I did not update the hmm model with the newly created model by Baum Welch, in 
+        our case, it would just be formating the matrices back into the list of dicts
+        and list of list of dicts format, and re-initalizing the HMM. 
+    2. Our current way of initializing the model, is to send the hmm class the 
+        dictionaries that we have been sending all along.  To create a new method of 
+        creating new transition probabilities or emission probababilities would be 
+        just getting a list of hidden states and emission/observed states from the 
+        user, and then calculating some initialization probabilities that sum to 1 
+        for both the hidden states and the observed states, and putting those into 
+        Dictionaries that could then be sent to the HMM model as the starting place.
+I did not implement these as they are for us, technically outside of the scope of the
+actual baum_welch algorithm.  They are really just the setup to initialize our hmm.
+           
+After I was done working on the project, I will be continuing to research code and
+papers on the backward algorithm, becuase the idea of having a 1 in a sum of 
+probabilities in an array bothers me, especially because we are using it in a summation
+later on, though I have a feeling I'm not going to get a satistfactory answer.  
+Additionally, I'm looking at how the pfam databases are using profile hmms to describe 
+sequences/proteins for comparison and storage.
 
 # Generative AI Appendix
-(Cited)
+
+(Use of HMMs/Curiosity)
+Krogh A, et al (1994). Hidden Markov models in computational biology.  Applications
+to protein modeling.  J Mol Biol., 235(5), 1501-31.  PMID 9107089
+
+(Reviewed by JC and used for understanding of Xi/E-Step implementation)
 Rabiner, L. R. (1989). A tutorial on hidden Markov models and selected applications in speech recognition. Proceedings of the IEEE, 77(2), 257–286.
 
 Yang, X. (2024). Hidden Markov model based network security posture prediction model. Applied Mathematics and Nonlinear Sciences, 9(1), 1–17.

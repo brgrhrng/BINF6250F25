@@ -506,11 +506,11 @@ class HMM:
     b_matrix = np.zeros((n_rows, n_cols)) # initialize B matrix with zeros
     
     # Since we start from the end, the probability of the last observation is 1.
-    # So, we initialize the final column of b_matrix with 1s.
+    # So, we initialize the final column (t-1) of b_matrix with 1s.
     # for state_i, state in enumerate(self.states):
     #  b_matrix[state_i,n_cols] = np.log(1) ; but as np.log(1) is 0; no need!
     
-    # Now we can go column by column, filling in each cell in our matrices.
+    # Now we can go column by column, filling in each cell in our matrices (we filled it from t-2 down to)
     # from the last observation moving to the left to the 
     # "inital state" in [state_i,0]
     # For each possible path into a cell (moving right to left):
