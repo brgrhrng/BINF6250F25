@@ -8,13 +8,7 @@
 import numpy as np
 import random
 
-# Global Constants
-
-EQ = "EQ" # equal
-GT = "GT" # greater than
-LT = "LT" # less than
-
-TESTING = True
+TESTING = False
 
 class HiddenState:
   """
@@ -43,12 +37,14 @@ class HiddenState:
     
     
   def set_transitions(self, transitions_dict):
-    """ Update outgoing edges to match provided transitions_dict. """
+    """ Update outgoing edges to match provided transitions_dict. 
+    """
     self.transition_to = transitions_dict
   
   
   def emit(self):
-    """ Randomly select one emission, weighted by probabilities. Return its name."""
+    """ Randomly select one emission, weighted by probabilities. Return its name.
+    """
     emission = random.choices(self.emissions, weights=self.emission_probs, k=1)[0]
     return emission
 
@@ -81,28 +77,16 @@ class HMM:
       if state_name in trans_probs.keys():
         new_state.set_transitions(trans_probs[state_name])
       self.states.append(new_state)
-      
-  
-  def bm_initialize_new_hmm(self):
-    ''' Given a self hmm model; initializes a new model with the same settings
-    Args:
-        self
-    Returns
-        new_model ; initialized to all of the same variables as the current model as a 
-                  starting the function 
-    '''
-    print("bm_initialization_new_hmm: not implemented yet, place holder")
-    print(" will need to create a new HMM and set all it's values to the ones in self")
-    new_model = self
-    return new_model
     
-  def bw_create_alphabet(observations):
-    ''' Creates a basic alphabet given a list of observations -- will create a unique list
-        of emission names in the returned list
+    
+  def create_alphabet(observations):
+    ''' Creates a basic alphabet given a list of observations
+        will create a unique list of emission names in the returned list
     Args:
-        observations:  list of strings/characters that represent emission states for our 
-                        new hmm class; our current assumption is that all of the states
-                        are represented by single character emission state.
+        observations:  list of sequences that contain lists of characters 
+                        that represent emission states for our hmm model; 
+                        our current assumption is that all of the states are 
+                        represented by single character emission state.
     Return:
         alphabet: a unique set of emission states based on the observations
     '''
@@ -117,121 +101,138 @@ class HMM:
         return("")
     return(sort(set(total_list)))
 
+
   def bw_get_emission_probs(self):
     '''  Helper function that takes an hmm model
+          returns an emission matrix in log space.
     Args:
-        self: the model itself
-        state_list:  list of current hidden states to help set up the matrix to return
+        self: the model itself which contains both hidden states (N) and
+              emissions states (M) in probability space.
     returns: 
-        matrix of the emission_probability (2D matrix rows - N (hidden states) x col- M (emissions))
+        matrix of the emission_probability (2D matrix- NxM) in log space
     '''
-    n = len(self.states)
-    m = len(self.emissions)
+    n = len(self.states) # hidden states
+    m = len(self.emissions) # number of emission states
     
-    emission_probs = np.zeros((n, m))
+    emission_probs = np.ndarray((n, m))
     
     for i, state in enumerate(self.states):
       for k, emit in enumerate(self.emissions):
         emission_probs[i][k] = np.log(state.emission_probs[emit])
     return emission_probs
 
+
   def bw_get_init_probs(self):
-    ''' helper funtion that takes an hmm and returns a vector with the initialization probs in it.
+    ''' helper funtion that takes an hmm and returns a vector with the model   
+            initialization probs(N states) in log space.
     returns:
-        vector that is the size of the state list
+        vector of the init_probs vector of size N of the state list; values 
+            are in log space
     '''
     n = len(self.states)
     
-    init_probs = np.zeros((n,1))
+    init_probs = np.ndarray((n,1))
     
     for i, state in enumerate(self.states):
       init_probs[i] = np.log(state.init_prob)
     
     return init_probs
+
    
   def bw_get_trans_to_probs(self):
-    ''' helper funtion that model, and returns a vector with the transition state probabilities
+    ''' helper funtion that model, and returns a vector with the model 
+              transition state probabilities in log space
     Args:
     returns:
         matrix: that size(state_list) x size(state_list)
     '''
     n = len(self.states)
     
-    trans_probs = np.zeros((n,n))
+    trans_probs = np.ndarray((n,n))
     
     for row_i,row_state in enumerate(self.states):
       for col_j,col_state in enumerate(self.states):
         trans_probs[row_i,col_j] = np.log(row_state.transition_to[col_state.name])
         
     return trans_probs
+
   
   def bw_get_log_lhood(self, obs, return_matrix=True):
-    ''' function to do the function calls and return the log_likelihood
-  
+    ''' function to do the 'forward' and 'backward' function calls 
+          and return the average log_likelihood.  If return_matrix is set 
+          then the function also returns alpha_m and beta_m matrices
     Arg:
     obs: sequence of emision states representing hidden states
-    return_matrix: optional parameter that says whether or not we have to return 
-                  the matrixes from 'forward' or 'backward', otherwise, the return is
-                  only the log_likelihood
+    return_matrix: optional parameter that says whether or not we have to return
+                  the matrixes from 'forward' or 'backward', otherwise, the
+                  return is only the log_likelihood
     Return:
-      log_likelihood log space probability that is the average of 'forward' and 'backward'
-      alpha_m (also known as forward_matrix) calculated probability of observation happening in the order it is (calculalated forward) 
-      beta_m (also known as backward_matrix) calculated probability of observation happending in the order it is (calculated backward)
+      log_likelihood log space probability that is the average 
+            of 'forward' and 'backward'
+      alpha_m (also known as forward_matrix) calculated prob of observation
+              happening in the order it is in observed sequence 
+              (calculalated in 'run_forward') 
+      beta_m (also known as backward_matrix) in state Si at time t, what 
+              is prob of seeing the remaining states from t+1 to m in the
+              observation sequence (calculated in 'run_backward')
     '''
-    T = len(obs)
-    N = len(self.states)
-    
-    alpha_m = np.array((N,T))
-    beta_m = np.array((N,T))
+    T = len(obs) # observed sequence
+    N = len(self.states) # number of hidden states in model
     
    # set up the log likelihood, and alpha & beta matrices
-    
-    f_log_lhood, alpha_m = self.run_forward(obs,return_matrix=True)
-    b_log_lhood, beta_m = self.run_backward(obs,return_matrix=True)
-    log_lhood_p = np.logaddexp(f_log_lhood,b_log_lhood) - 2 # average in log space
+    f_log_lhood, alpha_m = self.run_forward(obs,True)
+    b_log_lhood, beta_m = self.run_backward(obs,True) 
+    log_lhood_p = np.logaddexp(f_log_lhood,b_log_lhood) - 2 # avg in log space
     
     if (return_matrix):
       return(log_lhood_p,alpha_m,beta_m)
     else:
       return(log_lhood_p)
 
+
   def run_baum_welch(self, observations, max_loop_count, epsilon):
     """
-      Given a list of observations; and possible initial model; it calculates a 
-      maximized local model based on the list of observations.
+      Given a list of observations; and possible initial model (is stored in 
+      hmm 'self'); Baum Welch it calculates a maximized local model based 
+      on the list of observations.   The model is represented by three 
+      matrices init_probs, trans_to_probs and emission_probs.  These matrices
+      are returned from this function.
     Args:
-      observations: a list of observation values with observered 'emissions' that represent
-                    set of hidden states.
-      max_loop_count:  int this is the maximum loop count for the baum_welch algorithm
-      epsilon:  float - the delta between that is allowable between likelihoods -- will be translated into log state in this function
-      self:         This is an initialization of values that represent the starting states of 
-                    a model.  It contains:
+      observations: a list of observation sequences with observered 
+                    emission states that represent a set of hidden states.
+      max_loop_count (integer):  this is the maximum loop count for the
+                    baum_welch algorithm
+      epsilon: (float in probabilty space): the allowable difference 
+                    when comparing likelihoods to see if they are equivalent
+                    translated into log state in this function
+      self:         Our hmm model that represents 
+                    the starting states of a model.  It contains:
                         init_probs aka pi
                         trans_to   aka A_matrix or A_m
                         emissions  aka B_matrix or B_m 
-                      These are in our model as Dictiaries.
-                        
+                    In our model theses are stored as Dicts (or lists of Dicts)
       
     Returns:
-      Maximized model returned as init_probs,trans_to_probs,emit_probs
-      
-                    
+      Maximized hmm model returned as probability space matrices: 
+                init_probs,trans_to_probs,emit_probs
     """
   # variables that end in _m are matrices
   #                end in _v is a 1D matrix (init_probs)
   #                end in _p is a log state probability (single float)
   #
   # variables labled "current_" are the current baseline matrices/varables
-  # variables labeld "seq_" or "sum_seq" are the updated versions from training. 
+  # variables labeld "seq_" or "new_" are the updated versions from training. 
+  #
+  # Note: in log_space -np.inf is considered 'zero'
   #
   # Basic plan is:
   #
   # Initialize
   # while loop to iterate many, many times.
   #   for loop to train over sequences
-  #     using Estep & Mstep calculate new model for seq
+  #     using Estep & Mstep calculate new model for seq in seq_
   #     sum_seq_lhood, and seq_model matrices
-  #   scale back sum_seq and seq_model matrices
+  #   scale back sum_seq and seq_model matrices (in new_)
   #   check for convergence
   #     break loop with current model if converged
   #   if not converged - reset for next while loop iteration
@@ -239,40 +240,39 @@ class HMM:
   #
   
     # Initialize
-    current_init_v = self.bw_get_init_probs()
+    current_init_v = self.bw_get_init_probs() # current_model
     current_trans_to_m = self.bw_get_trans_to_probs()
     current_emissions_m = self.bw_get_emission_probs()
-    current_log_lhood = self.bw_get_log_lhood(observations[0],return_matrix=False)#baseline
+    current_log_lhood = self.bw_get_log_lhood(observations[0],return_matrix=False)#baseline likelihood
     
     N = len(self.states)
     M = len(self.emissions)
     
-    sum_seq_init_v = np.ndarray((N,1))
-    sum_seq_trans_to_m = np.ndarray((N,N))
-    sum_seq_emissions_m = np.ndarray((N,M))
+    new_seq_init_v = np.ndarray((N,1)) # create 'new model' arrays
+    new_seq_trans_to_m = np.ndarray((N,N))
+    new_seq_emissions_m = np.ndarray((N,M))
     
     loop_count = 0  # 'while' loop counter
     log_epsilon_p = np.log(epsilon) # convert prob to log_prob
   
-    # while loop to iterate over training step many times or until converges
+    # 'while' loop to iterate over training step many times or until converges
     while (loop_count <= max_loop_count):
       
       updated_model = 0 # initialize count of how many times we update our seq_model
-      new_log_lhood = -np.inf           # this is zero in log_space
+      new_log_lhood = -np.inf     # (re) initialize new_model
       new_init_v = np.full((1,N),-np.inf)
       new_trans_to_m = np.full((N,N),-np.inf)
       new_emissions_m = np.full((N,M),-np.inf)
       
-      # train on the sequences
+      # Train on the sequences
       for i, obs in enumerate(observations): # for each of our sequences; train...
-        
         # Calculate seq model for this sequence
         seq_log_lhood, gamma_m, xi_m = self.bw_EStep(obs, current_init_v, current_trans_to_m, current_emissions_m)
         
         seq_init_v, seq_trans_to_m, seq_emissions_m = self.bw_MStep(obs, gamma_m, xi_m)
 
-        # summarize liklihood as well as sequence models
-        if np.isinf(seq_log_lhood) == False:
+        # Summarize liklihood as well as sequence models
+        if np.isinf(seq_log_lhood) == False: # have we updated?
           updated_model += 1 # count the number of times this was updated
           new_log_lhood = np.logaddexp(new_log_lhood,seq_log_lhood)
           new_init_v = np.logaddexp(new_init_v,seq_init_v)
@@ -280,14 +280,14 @@ class HMM:
           new_emissions_m = np.logaddexp(new_emissions_m, seq_emissions_m)
       #end for loop
       
-      # time to scale back by the number of times I increased new_lhood and 'new model'
+      # Scale back by the number of times we increased our 'new model'
       if updated_model:
         new_log_lhood -= np.log(updated_model)
         new_init_v -= np.log(updated_model)
         new_trans_to_m -= np.log(updated_model)
         new_emissions_m -= np.log(updated_model)
         
-      #check for convergence
+      #Check for convergence
       if np.abs(new_log_lhood) - np.abs(current_log_lhood) < log_epsilon_p:
         print(f"Converged {loop_count} iterations to local maximum, log_lhood: {new_log_lhood}")
         return(np.exp(new_init_v),np.exp(new_trans_to_m),np.exp(new_emissions_m))
@@ -305,74 +305,72 @@ class HMM:
     ''' Expectation step of Baum-Welch -- needs a single observation,
          Also takes the model that we need to calculate the 'expectation step' on.
          
-         obs: sequence of observed emissions.
-         pi_m :  matrix in log_space ; this initialization probs for our model
-         A_m : matrix in log space ; this is the transition matrix for our model
-         B_m: matrix in log space; this is the emission matrix for our model
+         obs: sequence of T observed emissions.
+         pi_m : 1xN matrix in log_space ; this init probs for our model
+         A_m : NxN matrix in log space ; transition matrix for our model
+         B_m: NxM matrix in log space; emission matrix for our model
     Returns
       log_lhood (from average of forward&backward run)
-      gamma_m:   matrix in log_space of the probability of a particular state to another state
-      xi_m: matrix in log_space of the expectation probabilty of being in a particular state
+      gamma_m: NxT matrix in log_space of the probability of a 
+              particular state (Si) to another state (Sj) in our obs sequence
+      xi_m: NxT matrix in log_space of the probability that I was in state i 
+              at time t AND then transitioned to state j at time t+1, given 
+              all I have observed. 
+              Xi tells you which state transitions happened in our obs seq.
     '''
-    # for our example:
-    # pi or init is N state probabilities
-    # A_m is 2x2 N x N
-    # B_m is 2x4 N x M
-    # alpha_m should be N x len(obs) T
-    # beta_m should be N x len(obs)   
     
-    T = len(obs)
-    N = len(self.states)
+    T = len(obs) # length of the obs sequence
+    N = len(self.states) # number of hidden states
     
-    avg_log_lhood, alpha_m, beta_m = self.bw_get_log_lhood(obs,return_matrix=True) #run forward & backward!
+    avg_log_lhood, alpha_m, beta_m = self.bw_get_log_lhood(obs,return_matrix=True) #runs forward & backward!
     
     # gamma_m is (alpha_m + beta_m) - avg_log_lhood (scalar)
-    # this is the probability from transisition from Si -> Sj 
-    #    where Si and Sj are states in observation sequence at pos i and j
-    # gamma_m = alphpa_m*beta_m/avg_log_lhood or in log space:
-    # gamma_m = alpha_m + beta_m - avg_log_lhood  which is N x T matrix
+    # math is in log space!
     gamma_m = np.ndarray((N,T))
     
     gamma_m = alpha_m + beta_m - avg_log_lhood
     
-    # xi_m is the probability of being in state Si at time t and state Sj at time t+1 
-    # will need three dimensional array
-    # xi[i,j,t] = P(q_t = i, q_t+1 = j given obs & 'model')
+    # xi_m is the prob of being in state Si at time t and state Sj at time t+1 
+    # We need three dimensional array
+    # xi[t-1,i,j] = P(q_t = i, q_t+1 = j given obs & 'model')
     # xi_num (alpha_m(i,t) + beta_m(j,t+1)) + A_m[i][j] + B_m(O_t+1,j)
     xi_m = np.ndarray((T-1, N, N))
     
+    # Compute denom,numerator and then xi_m for all state pairs
     for t in range(T-1):
-        # Denominator: P(O | model) = sum over all states at time t
-        denominator = 0.0
-        for i in range(N):
-            for j in range(N):
-                emit=obs[t+1]
-                B_j_obs_t_plus1 = self.states[j].emission_probs[emit]
-                denominator += alpha_m[i,t] + A_m[i, j] + B_j_obs_t_plus1 + beta_m[j,t+1]
-        
-        # Compute numerator and then xi_m for all state pairs
-        for i in range(N):
-            for j in range(N):
-                emit=obs[t+1]
-                B2_j_obs_t_plus1 = self.states[j].emission_probs[emit]
-                numerator = alpha_m[i,t] + A_m[i,j] + B2_j_obs_t_plus1 + beta_m[j,t+1]
-                
-                xi_m[t, i, j] = numerator - denominator # more log math!
+     
+      denominator = 0# Denom: P(O | model) = sum over all states @time t
+      for i in range(N):
+        for j in range(N):
+          emit=obs[t+1] # snag the emission state character
+          B_j_obs_t_plus1 = np.log(self.states[j].emission_probs[emit])
+          if denominator:
+            denominator +=alpha_m[i,t]+A_m[i, j] + B_j_obs_t_plus1 + beta_m[j,t+1]
+          else:
+            denominator = alpha_m[i,t]+A_m[i,j] + B_j_obs_t_plus1 + beta_m[j,t+1]
+          
+      for i in range(N):
+        for j in range(N):
+          emit=obs[t+1]
+          B2_j_obs_t_plus1 = self.states[j].emission_probs[emit]
+          numerator = alpha_m[i,t] + A_m[i,j] + B2_j_obs_t_plus1 + beta_m[j,t+1]
+          
+          xi_m[t, i, j] = numerator - denominator # more log math!
                 
     return(avg_log_lhood,gamma_m,xi_m)
 
+
   def bw_MStep(self, obs, gamma_m, xi_m):
-    ''' Creates new model initialization, transition matrix and emission matrix
-        given an observation and calculated probabilities in gamma_matrix and xi_matrix
-        
-        Normalization will also be done
+    ''' Creates new model (init, transition and emission matrices)
+        given an obs seq and calculated probabilities in gamma_m and xi_m
+        Normalization will also be done ; all in log space
     Args:
       gamma_m # P of going from Si to Sj 
-      xi_m # P of being in Si at time t and Sj at time t+1
+      xi_m    # P of being in Si at time t and Sj at time t+1
     Returns
-      init_hat
-      A_hat_m
-      B_hat_m
+      init_hat # model matrix init_probs Step 1
+      A_hat_m  # model matrix trans_to_probs Step 2
+      B_hat_m  # model matrix emission_probs Step 3
     '''  
     # We need init_probs, A_m and B_m in order to create the next model
     T = len(obs)
@@ -380,13 +378,12 @@ class HMM:
     M = len(self.emissions)
     
     # 1 Re-estimate pi (init_probs)
-    init_hat = np.ndarray((N,1))
-    init_hat = gamma_m[:,0]
+    init_hat = np.ndarray((N,T))
+    init_hat = gamma_m[:,0] # gammna matrix at t=0 is initialization states
     
     # 2. Re-estimate A (transition matrix)
     # A[i,j] = sum_t(xi[t,i,j]) / sum_t(gamma[t,i])
     A_hat = np.ndarray((N,N))
-    A_denom = np.full((N,N),-np.inf)
  
     for i in range(N): # for each state - calculate the transitions to other states
         A_denom = np.logaddexp.reduce(gamma_m[:-1,i])#sum over t=0 to T-2
@@ -410,8 +407,9 @@ class HMM:
     return init_hat, A_hat, B_hat
     #end M-Step
     
+    
   def bm_logsum_emission_probs(self,obs,gamma,index,emit):
-    '''creates sum of all of the gamma probabilities of type emit
+    '''Creates sum of all of the gamma probabilities of type emit
     Args:
         obs:  list of char; current sequence
         gamma: prob of going from Si to Sj given obs and model
@@ -427,24 +425,6 @@ class HMM:
       if (obs[t] == emit):
         running_sum = np.logaddexp(running_sum,gamma[index,t])
     return(running_sum)
-
-  def bw_compare_likelihood(self,current,new,epsilon):
-    '''  Compares current likelihood to new likelihood (note these are both in log space!)
-          
-          Could use np.isclose(a,b,atol=epsilon) however, this does assume + for epsilon
-          
-          epsilon will come in as log_space (it is converted in run_baum_welch)
-    Returns:
-      comparitor = EQ (1) or GT (2) or LT (0) # defined as global constants
-      
-      
-    '''
-    if TESTING: print(f"bw_compare_likelihood: {np.exp(current)}, {np.exp(new)}, {np.isclose(current,new,epsilon)}")
-    if (np.isclose(current,new,epsilon)):
-      return(EQ)
-    elif (current > new):
-      return(GT)
-    return(LT)
       
       
   def run_forward(self, observations, return_matrix = False):
@@ -454,8 +434,8 @@ class HMM:
     Args:
       observations: a list of observation values, or a string where each 
                     character represents 1 observation.
-      return_matrix: if FALSE, return the overall probability of the sequence (default)
-                     if TRUE, return (overall p, probability matrix)
+      return_matrix: if FALSE, return the overall probability of the sequence
+                      (default) if TRUE, return (overall p, probability matrix)
     Returns: probability (float), or packed tuple (p, prob matrix)
     """
     if type(observations) == str: # convert str -> list(char)
@@ -755,7 +735,7 @@ if TESTING:
 
   print("TEST")
   
-  our_loop_max = 3
+  our_loop_max = 1000
   our_epsilon = 0.00001
   new_init, new_trans, new_emit = test_HMM.run_baum_welch(observations,our_loop_max,our_epsilon)
   
