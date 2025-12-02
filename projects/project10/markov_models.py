@@ -7,6 +7,7 @@
 
 import numpy as np
 import random
+import string
 
 TESTING = False
 
@@ -77,30 +78,7 @@ class HMM:
       if state_name in trans_probs.keys():
         new_state.set_transitions(trans_probs[state_name])
       self.states.append(new_state)
-    
-    
-  def create_alphabet(observations):
-    ''' Creates a basic alphabet given a list of observations
-        will create a unique list of emission names in the returned list
-    Args:
-        observations:  list of sequences that contain lists of characters 
-                        that represent emission states for our hmm model; 
-                        our current assumption is that all of the states are 
-                        represented by single character emission state.
-    Return:
-        alphabet: a unique set of emission states based on the observations
-    '''
-    list_max = len(observations)
-    total_list = ""
-    
-    for i, obs in enumerate(observations):
-      if is_instance(obs,str):
-        total_list += obs
-      else:
-        print("currently we cannot create alphabets for observations that are not strings")
-        return("")
-    return(sort(set(total_list)))
-
+  
 
   def bw_get_emission_probs(self):
     '''  Helper function that takes an hmm model
@@ -287,9 +265,12 @@ class HMM:
         new_trans_to_m -= np.log(updated_model)
         new_emissions_m -= np.log(updated_model)
         
-      #Check for convergence
-      if np.abs(new_log_lhood) - np.abs(current_log_lhood) < log_epsilon_p:
-        print(f"Converged {loop_count} iterations to local maximum, log_lhood: {new_log_lhood}")
+      #Check for convergence -- will run through each of the observations before exiting
+      if new_log_lhood == current_log_lhood:
+        print(f"Converged {loop_count} iterations to local maximum, log_lhood (equal): {np.exp(new_log_lhood)}")
+        return(np.exp(new_init_v),np.exp(new_trans_to_m),np.exp(new_emissions_m))
+      if (np.exp(new_log_lhood) - np.exp(current_log_lhood)) <= log_epsilon_p:
+        print(f"Converged {loop_count} iterations to local maximum, log_lhood (within epsilon): {np.exp(new_log_lhood)}")
         return(np.exp(new_init_v),np.exp(new_trans_to_m),np.exp(new_emissions_m))
       else: # reset for next 'while' loop run
         current_init_v = new_init_v
@@ -379,7 +360,7 @@ class HMM:
     
     # 1 Re-estimate pi (init_probs)
     init_hat = np.ndarray((N,T))
-    init_hat = gamma_m[:,0] # gammna matrix at t=0 is initialization states
+    init_hat = gamma_m[:,0] - np.logaddexp.reduce(gamma_m[:,0]) # gamma_m[0] is init states (but normalize it!)
     
     # 2. Re-estimate A (transition matrix)
     # A[i,j] = sum_t(xi[t,i,j]) / sum_t(gamma[t,i])
@@ -388,7 +369,7 @@ class HMM:
     for i in range(N): # for each state - calculate the transitions to other states
         A_denom = np.logaddexp.reduce(gamma_m[:-1,i])#sum over t=0 to T-2
         for j in range(N): # calculate for each 'other' state
-            A_num = np.logaddexp.reduce(xi_m[:, i, j])#sum over all time
+            A_num = np.logaddexp.reduce(xi_m[:, i, j])#sum over all time (i,j)
             A_hat[i,j] = A_num - A_denom
         A_hat[i,:] -= np.logaddexp.reduce(A_hat[i,:]) # confirm it's normalized
         
@@ -699,6 +680,124 @@ def sum_log_probs(list_of_logs):
   return total
 
 
+def create_alphabet(observations):
+  ''' Creates a basic alphabet given a list of observations
+      will create a unique list of emission names in the returned list
+  Args:
+      observations:  list of sequences that contain lists of characters 
+                      that represent emission states for our hmm model; 
+                      our current assumption is that all of the states are 
+                      represented by single character emission state.
+  Return:
+      alphabet: a unique set of emission states based on the observations
+  '''
+  list_max = len(observations)
+  total_list = ""
+    
+  for i, obs in enumerate(observations):
+    if isinstance(obs,str):
+      total_list += obs
+    else:
+      print("currently we cannot create alphabets for observations that are not strings")
+      return("")
+  return(sorted(set(total_list)))
+
+
+def create_simple_equal_probs(num_states):
+  ''' Creates a simple probabilities given a number statess (doesn't matter if it is hidden or emission states)
+  
+    As we haven't coverted everything to log probs yet, this is just a simple 1/num_states that will create a 
+    probability for each 'state'.
+    Ex: if we are given 2 states then we will return a numpy list with ( 0.5, 0.5 )
+    Args:
+      num_states integer, the number of states to calculate simple initial probabilities for 
+  '''
+  # set default_model init to have 2D vector 1*N 
+  
+  state_probs = list()
+  if (num_states):
+    equal_state_probs = 1/num_states
+    for states in range(num_states):
+      state_probs.append(equal_state_probs)
+    return(state_probs)
+  else:
+    print("create_simple_equal_probs(): sent invalid number of states {num_states}")
+    return("")
+  
+  
+def create_hidden_states(emission_states,num_trans_states):
+  ''' 
+    Creates a string list of the hidden state "names"; we know that the number of satates is num_trans_states; 
+    and we are given the names of the emission_states; so we can pick a couple of characters to represent the
+    hidden states
+    
+    emission_states: string of characters known emission states (the alphabet if you will)
+                      These will be EXCLUDED from the list we pick from
+    num_trans_states: the number of hidden states that we need to pick
+    
+    returns:
+    hidden_states: string of characters representing the hidden states in this model.
+  '''
+  all_possible  = list(string.ascii_uppercase)
+  new_poss_states = list()
+  for char in all_possible:
+    if char in emission_states:
+      continue # we don't want to duplicate the names if we can avoid it
+    else:
+      new_poss_states += char
+  
+  return new_poss_states[0:num_trans_states]
+
+
+def create_simple_default_model(observations,num_trans_states):
+  """
+  Note:
+  While most of our functions are done all in log space, this one will be done in probability space,
+  as the base functions for the user of this suite, would be inputing the data in prob space not log space.
+  
+  Given a list of observatations, creates 'model' of symbolic and state transitions as needed for initializing
+  our HMM class.
+  
+  Args: 
+    observations: list of strings that is a list of sequences representing the observed states that are 
+                  seen in our sequences
+    num_trans_states:  integer - the number of hidden states that are preseent in our model system
+  
+  returns:
+    init: list of dict that is the initialization transition frequencies.
+    trans_to: list of dict of dicts of our hidden states transition probabilities(this is an num_trans_states x num_trans_states dictionary)
+    emissions: list of dict of dict of our state emission probabilities.(this is a num_trans_states x num_emission_states dictionary)
+  """
+  
+  init = {}
+  trans_to = {}
+  emissions = {}
+  sub_trans_to = {}
+  sub_emit = {}
+  
+  obs_state_names = create_alphabet(observations)
+  num_emission_states = len(obs_state_names)
+  emission_probs = create_simple_equal_probs(num_emission_states)
+  
+  hidden_state_names = list(create_hidden_states(obs_state_names,num_trans_states))
+  hidden_state_probs = create_simple_equal_probs(num_trans_states)
+  
+  init_state_names = hidden_state_names
+  
+  for key, value in zip(hidden_state_names,hidden_state_probs):
+    init[key] = value
+  
+  for top_key, top_hidden_state in enumerate(hidden_state_names):
+    for sub_dict_key, sub_hidden_probs in zip(hidden_state_names,hidden_state_probs):
+      sub_trans_to[sub_dict_key] = sub_hidden_probs
+    for sub_emit_key, sub_emit_probs in zip(obs_state_names,emission_probs):
+      sub_emit[sub_emit_key] = sub_emit_probs
+    trans_to[top_hidden_state] = sub_trans_to
+    emissions[top_hidden_state]= sub_emit
+ 
+  return(init, trans_to, emissions)
+
+
 TESTING = True
 if TESTING:
   # Example data provided in project description
@@ -735,7 +834,7 @@ if TESTING:
 
   print("TEST")
   
-  our_loop_max = 1000
+  our_loop_max = 10
   our_epsilon = 0.00001
   new_init, new_trans, new_emit = test_HMM.run_baum_welch(observations,our_loop_max,our_epsilon)
   
@@ -743,5 +842,29 @@ if TESTING:
   print(f"Init: {new_init}")
   print(f"Transitions: {new_trans}")
   print(f"Emissions: {new_emit}")
+
+  # And with our own simple starting point of transition states and emission states"
+  number_of_hidden_states = 2
+  
+  init_probs2, trans_probs2, emit_probs2 = create_simple_default_model(observations,number_of_hidden_states)
+  test2_HMM = HMM(init_probs2, trans_probs2, emit_probs2)
+  
+  print("--------------")
+  for i,state in enumerate(test2_HMM.states):
+    print(f"STATE {i}: \"{state.name}\"")
+    print(f"Init_p: {state.init_prob}")
+    print(f"emit probs:     {state.emission_probs}")
+    print(f"out_probs: {state.transition_to}")
+    print("\n")
+  
+  our_loop_max = 10
+  our_epsilon = 0.00001
+  new_init, new_trans, new_emit = test2_HMM.run_baum_welch(observations,our_loop_max,our_epsilon)
+  
+  print(f"Baum Welch Recalculated")
+  print(f"Init: {new_init}")
+  print(f"Transitions: {new_trans}")
+  print(f"Emissions: {new_emit}")
+
   
   

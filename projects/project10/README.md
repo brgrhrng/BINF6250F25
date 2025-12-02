@@ -293,20 +293,11 @@ Group leader's reflection on the project
 Other members' reflections on the project:
 
 Left to do in this project (but would be easy to implement):
-    1. I did not update the hmm model with the newly created model by Baum Welch, in 
-        our case, it would just be formating the matrices back into the list of dicts
-        and list of list of dicts format, and re-initalizing the HMM. 
-    2. Our current way of initializing the model, is to send the hmm class the 
-        dictionaries that we have been sending all along.  To create a new method of 
-        creating new transition probabilities or emission probababilities would be 
-        just getting a list of hidden states and emission/observed states from the 
-        user, and then calculating some initialization probabilities that sum to 1 
-        for both the hidden states and the observed states, and putting those into 
-        Dictionaries that could then be sent to the HMM model as the starting place.
-I did not implement these as they are for us, technically outside of the scope of the
-actual baum_welch algorithm.  They are really just the setup to initialize our hmm.
+    I did not update the hmm model with the newly created model by Baum Welch, in 
+    our case, it would just be formating the matrices back into the list of dicts
+    and list of list of dicts format, and re-initalizing the HMM. 
            
-After I was done working on the project, I will be continuing to research code and
+After I was done working on the project, I was planning to continuing researching online code and
 papers on the backward algorithm, becuase the idea of having a 1 in a sum of 
 probabilities in an array bothers me, especially because we are using it in a summation
 later on, though I have a feeling I'm not going to get a satistfactory answer.  
@@ -315,9 +306,12 @@ sequences/proteins for comparison and storage.
 
 # Generative AI Appendix
 
+# Citations
 (Use of HMMs/Curiosity)
+Eddy S (1998). Profile hidden Markov models.  Bioinformatics Review, 14(9), 755-763.
+
 Krogh A, et al (1994). Hidden Markov models in computational biology.  Applications
-to protein modeling.  J Mol Biol., 235(5), 1501-31.  PMID 9107089
+to protein modeling.  J Mol Biol., 235(5), 1501-31.
 
 (Reviewed by JC and used for understanding of Xi/E-Step implementation)
 Rabiner, L. R. (1989). A tutorial on hidden Markov models and selected applications in speech recognition. Proceedings of the IEEE, 77(2), 257–286.
