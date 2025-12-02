@@ -4,8 +4,9 @@
 - Due:  December 03, 2025
 
 # Introduction
-Description of the project
-
+Implement the Baum-Welch portion of our hidden Markov model suite of functions. Given multiple
+sequences and a starting model (with sample/simplified init, transition and emission probs) calculates a
+localized maximized model solution.
 
 # Pseudocode
 Put pseudocode in this box:
@@ -254,36 +255,33 @@ compare_likelihood(current,new,epsilon)
 once you not what your 'particular item' is and how your algorithm is changing it.
 2. As long as you stay consistent, doing this algorithm completely in log_math was not
 as difficult as we thought it might become.
-3. (Jacque) Did go back to the backward algorthm and fixed her issue of wanting to 
+3. (Jacque) did go back to the backward algorithm and fixed her issue of wanting to 
 have the backward matrix longer by one element.  Mea culpa to all.  I have verified 
-with different implementations on-line that they are done placing the probability space
+with different implementations online that they are done placing the probability space
 values in the t-1 position, and then starting with the t-2 position and filling down 
 until you get to the zeroth position. 
 
 # Struggles
 1. (Jacque) Struggled to understand the math behind the algorithm, more specifically
-during the E-Step, or the step that calculates the expected values of states in
-particular locations, the first part of that equation is the probability of at a
-particular time 't', a state having a particular Si value moving to another state (Sj)
-value in our observation sequence.   The problem was understanding part of the E-step -
-the one that calculates the probability of a particular state happening at time t with
-state j, or in other words, the probability of being in state i at time t and being 
+during the E-Step, the second part of that function.   The problem was understanding
+the part that calculates the probability of a particular state happening at a particular
+time, or in other words, the probability of being in state i at time t and being 
 in state j at time t+1.  Implementing the algorithm wasn't that hard, but wrapping 
-my head around the three variables at the same time was.   
-2. (Jacque) continued to struggle with object oriented programming.  I may have spent 
-more time swearing at the fact I couldn't debug something because python considered 
-things in our class 'private'.  grrrrrr.   Unfortunately designing software when you
-don't know most of the constraints at the begining are very difficult.  I'm sure I 
-missed some opportunities to make this more object oriented.
-3. (Jacque) had difficulty wanting to break up parts of the main baum_welch loop as I 
+my head around the three/four (i,j,t and k) variables at the same time was.   
+3. (Jacque) continued to struggle with object-oriented programming.  I may have spent 
+more time swearing at the fact that I couldn't debug something because Python considered 
+things in our class 'private'.  grrrrrr.   Unfortunately, designing software when you
+don't know most of the constraints at the beginning are very difficult.  I'm sure I 
+missed some opportunities to make this more object-oriented.
+4. (Jacque) had difficulty wanting to break up parts of the main baum_welch loop as I 
 wasn't sure of the efficiency of constantly handing large matrices to multiple small 
-procedures.  I expect that if I had been using our hmm class object properly our 
-actual loop would be much smaller as I seemed to be constantly assigning and 
+procedures.  If I had been using our hmm class object more effectively I expect that
+our Baum-Welch loop would be much smaller.  I found myself constantly assigning and 
 reassigning our model (which consists of at least three things (which were basically 
-already in our hmm model).  Bascically this is just the OO issue again I expect.
-4. (Jacque) I continue to struggle with the idea of not knowing if my answer is 
+already in our hmm model).  This is just me struggling with O-O programming, I expect.
+6. (Jacque) I continue to struggle with the idea of not knowing if my answer is 
 'correct' or not.  <sigh>
-5. (Jacque) pseudocode did not work out the way I had planned.
+7. (Jacque) pseudocode did not work out the way I had planned.
 
 # Personal Reflections
 ## Group Leader (Brooks)
@@ -301,6 +299,26 @@ After I was done working on the project, I was planning to continuing researchin
 papers on the backward algorithm, becuase the idea of having a 1 in a sum of 
 probabilities in an array bothers me, especially because we are using it in a summation
 later on, though I have a feeling I'm not going to get a satistfactory answer.  
+=======
+    1. We did not update the hmm model with the newly created model by Baum Welch.  In 
+        our case, it would just be formatting the returned matrices back into the list of dicts
+        and list of lists of dicts format, and re-initalizing the HMM (outside of the algo) 
+    2. Our current way of initializing the model is to send the hmm class the 
+        dictionaries that we have been sending all along.  Creating a new way of 
+		generating transition probabilities or emission probabilities would be 
+        just getting a list of hidden states and emission/observed states from the 
+        user, and then calculating some initialization probabilities that sum to 1 
+        for both the hidden states and the observed states, and putting those into 
+        Dictionaries that could then be sent to the HMM model as the starting place.
+We did not implement these as they are for us, technically outside of the scope of the
+actual Baum-Welch algorithm.  They are really just the setup to initialize our hmm.
+           
+After completing the work on the project, I am continuing to research code and
+papers on the backward algorithm, because the idea of having a 1 in a sum of 
+probabilities in an array bothers me.  Especially because we are using it in a summation
+later on, though I have a feeling I'm not going to get a satisfactory answer.  
+
+>>>>>>> refs/remotes/origin/Project10_PR
 Additionally, I'm looking at how the pfam databases are using profile hmms to describe 
 sequences/proteins for comparison and storage.
 
