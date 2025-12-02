@@ -252,7 +252,7 @@ compare_likelihood(current,new,epsilon)
 
 # Successes
 1. The idea of a particular item converging to a particular point is not difficult once
-once you know what your 'particular item' is and how your algorithm is changing it.
+once you not what your 'particular item' is and how your algorithm is changing it.
 2. As long as you stay consistent, doing this algorithm completely in log_math was not
 as difficult as we thought it might become.
 3. (Jacque) did go back to the backward algorithm and fixed her issue of wanting to 
@@ -291,6 +291,15 @@ Group leader's reflection on the project
 Other members' reflections on the project:
 
 Left to do in this project (but would be easy to implement):
+    I did not update the hmm model with the newly created model by Baum Welch, in 
+    our case, it would just be formating the matrices back into the list of dicts
+    and list of list of dicts format, and re-initalizing the HMM. 
+           
+After I was done working on the project, I was planning to continuing researching online code and
+papers on the backward algorithm, becuase the idea of having a 1 in a sum of 
+probabilities in an array bothers me, especially because we are using it in a summation
+later on, though I have a feeling I'm not going to get a satistfactory answer.  
+=======
     1. We did not update the hmm model with the newly created model by Baum Welch.  In 
         our case, it would just be formatting the returned matrices back into the list of dicts
         and list of lists of dicts format, and re-initalizing the HMM (outside of the algo) 
@@ -309,12 +318,16 @@ papers on the backward algorithm, because the idea of having a 1 in a sum of
 probabilities in an array bothers me.  Especially because we are using it in a summation
 later on, though I have a feeling I'm not going to get a satisfactory answer.  
 
+>>>>>>> refs/remotes/origin/Project10_PR
 Additionally, I'm looking at how the pfam databases are using profile hmms to describe 
 sequences/proteins for comparison and storage.
 
 # Generative AI Appendix
 
+# Citations
 (Use of HMMs/Curiosity)
+Eddy S (1998). Profile hidden Markov models.  Bioinformatics Review, 14(9), 755-763.
+
 Krogh A, et al (1994). Hidden Markov models in computational biology.  Applications
 to protein modeling.  J Mol Biol., 235(5), 1501-31.
 
