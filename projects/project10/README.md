@@ -61,7 +61,7 @@ Create_alphabet(observations[])
     * return sort(set(all_states))
     
 Create_emission_probs(alphabet,state_list)
-    creates emisission list
+    creates emission list
     for state in state_list
     create list of emission probs
 
@@ -168,7 +168,7 @@ MStep(obs,gamma_m,xi_m)
     
   # We need init_probs, A_m and B_m in order to create the next model
   
-  hat_init = gamma(0,i) # the row/column of the inital matrix!
+  hat_init = gamma(0,i) # the row/column of the initial matrix!
  
   A_denom = logsum_shenanigans(gamma_m(1 to T-1,"i"))
   A_numerator = logsum_shenanigans(xi_matrix(1 to T-1,"[i,j]")
@@ -186,9 +186,9 @@ set_model(pi,A,B)
   ''' sets a model to have new init_probs, trans_to, emission_probs from
     pi, A_m, and B_m
   Args:
-    pi: vector of init probabililites
+    pi: vector of init probabilities
     A: matrix N*N trans_to probabilities
-    B: matrixs N*M emission probabilities
+    B: matrix N*M emission probabilities
   returns:
     ???
   '''
@@ -251,8 +251,8 @@ compare_likelihood(current,new,epsilon)
 ```
 
 # Successes
-1. The idea of a particular item converging to a particular point is not difficult once
-once you not what your 'particular item' is and how your algorithm is changing it.
+1. The idea of a particular item converging is not difficult once you know what thing
+is converging, and how your algorithm is changing it.
 2. As long as you stay consistent, doing this algorithm completely in log_math was not
 as difficult as we thought it might become.
 3. (Jacque) did go back to the backward algorithm and fixed her issue of wanting to 
@@ -262,7 +262,7 @@ values in the t-1 position, and then starting with the t-2 position and filling 
 until you get to the zeroth position. 
 
 # Struggles
-1. (Jacque) Struggled to understand the math behind the algorithm, more specifically
+1. (Jacque) Struggled to understand the math behind the algorithm, more specifically,
 during the E-Step, the second part of that function.   The problem was understanding
 the part that calculates the probability of a particular state happening at a particular
 time, or in other words, the probability of being in state i at time t and being 
@@ -280,7 +280,7 @@ our Baum-Welch loop would be much smaller.  I found myself constantly assigning 
 reassigning our model (which consists of at least three things (which were basically 
 already in our hmm model).  This is just me struggling with O-O programming, I expect.
 6. (Jacque) I continue to struggle with the idea of not knowing if my answer is 
-'correct' or not.  <sigh>
+'correct' or not.  
 7. (Jacque) pseudocode did not work out the way I had planned.
 
 # Personal Reflections
@@ -290,37 +290,17 @@ Group leader's reflection on the project
 ## Other member (Jacque)
 Other members' reflections on the project:
 
-Left to do in this project (but would be easy to implement):
-    I did not update the hmm model with the newly created model by Baum Welch, in 
-    our case, it would just be formating the matrices back into the list of dicts
-    and list of list of dicts format, and re-initalizing the HMM. 
+Left to do in this project:
+    I did not update the hmm model with the newly created model by Baum Welch, just returned
+	the values of the matrices.
            
-After I was done working on the project, I was planning to continuing researching online code and
-papers on the backward algorithm, becuase the idea of having a 1 in a sum of 
-probabilities in an array bothers me, especially because we are using it in a summation
-later on, though I have a feeling I'm not going to get a satistfactory answer.  
-=======
-    1. We did not update the hmm model with the newly created model by Baum Welch.  In 
-        our case, it would just be formatting the returned matrices back into the list of dicts
-        and list of lists of dicts format, and re-initalizing the HMM (outside of the algo) 
-    2. Our current way of initializing the model is to send the hmm class the 
-        dictionaries that we have been sending all along.  Creating a new way of 
-		generating transition probabilities or emission probabilities would be 
-        just getting a list of hidden states and emission/observed states from the 
-        user, and then calculating some initialization probabilities that sum to 1 
-        for both the hidden states and the observed states, and putting those into 
-        Dictionaries that could then be sent to the HMM model as the starting place.
-We did not implement these as they are for us, technically outside of the scope of the
-actual Baum-Welch algorithm.  They are really just the setup to initialize our hmm.
-           
-After completing the work on the project, I am continuing to research code and
+After I was done working on the project, I am planning to continue researching online code and
 papers on the backward algorithm, because the idea of having a 1 in a sum of 
-probabilities in an array bothers me.  Especially because we are using it in a summation
+probabilities in an array bothers me, especially because we are using it in a summation
 later on, though I have a feeling I'm not going to get a satisfactory answer.  
-
->>>>>>> refs/remotes/origin/Project10_PR
-Additionally, I'm looking at how the pfam databases are using profile hmms to describe 
-sequences/proteins for comparison and storage.
+           
+Additionally, I'm looking at how the pfam and other online sequence databases are using 
+profile hmms to describe sequences/proteins for comparison and storage.
 
 # Generative AI Appendix
 
