@@ -9,7 +9,7 @@ import numpy as np
 import random
 import string
 
-TESTING = False
+TESTING = True
 
 class HiddenState:
   """
@@ -65,7 +65,7 @@ class HMM:
       init_probs: dict of (state_name, probability) pairs
       trans_prob: nested dict where the key is a state name, and the value is
                   a dict of (state_name, probability) pairs
-     emit_probs: nested dict where the key is a state name, and  value is
+      emit_probs: nested dict where the key is a state name, and  value is
                    a dict of (emission_name, probability) pairs
     """
     self.emissions = list(list(emit_probs.items())[0][1].keys()) # emission keys from 1st state
@@ -79,7 +79,8 @@ class HMM:
         new_state.set_transitions(trans_probs[state_name])
       self.states.append(new_state)
   
-
+  
+    
   def __bw_get_emission_probs(self):
     '''  
     Helper function to pack our emission probs into an emission matrix.
@@ -254,7 +255,7 @@ class HMM:
           update_count += 1 # count the number of times this was updated
           new_log_lhood = np.logaddexp(new_log_lhood,seq_log_lhood)
           new_init_v = np.logaddexp(new_init_v,seq_init_v)
-          new_trans_to_m = np.logaddexp(new_trans_to_m,seq_trans_to_m)
+          new_trans_to_m = np.logaddexp(new_trans_to_m, seq_trans_to_m)
           new_emissions_m = np.logaddexp(new_emissions_m, seq_emissions_m)
       
       if update_count:
@@ -268,7 +269,7 @@ class HMM:
         if new_log_lhood == current_log_lhood:
           print(f"Converged {loop_count} iterations to local maximum, log_lhood (equal): {np.exp(new_log_lhood)}")
           converged = True
-        elif (np.exp(new_log_lhood) - np.exp(current_log_lhood)) <= log_epsilon_p:
+        elif abs(np.exp(new_log_lhood) - np.exp(current_log_lhood)) <= log_epsilon_p:
           print(f"Converged {loop_count} iterations to local maximum, log_lhood (within epsilon): {np.exp(new_log_lhood)}")
           converged = True
         else: # reset for next 'while' loop run
@@ -277,8 +278,17 @@ class HMM:
           current_emissions_m = new_emissions_m
       
       loop_count += 1
-
-    # Return updated model in probability space
+    
+    # Update state objects with new init/trans/emit probs
+    state_names = [state.name for state in self.states]
+    for state_i, state in enumerate(self.states):
+      trans_probs = current_trans_to_m[state_i]
+      emission_probs = current_emissions_m[state_i]
+      
+      state.init_prob = current_init_v[0][state_i]
+      state.transition_to = dict(zip(state_names,trans_probs))
+      state.emission_probs = dict(zip(self.emissions, emission_probs))
+    
     return np.exp(current_init_v), np.exp(current_trans_to_m), np.exp(current_emissions_m)
   
 	
@@ -798,7 +808,6 @@ def create_simple_default_model(observations,num_trans_states):
   return(init, trans_to, emissions)
 
 
-TESTING = True
 if TESTING:
   # Example data provided in project description
   # Example observation sequences (multiple sequences for training)
@@ -842,14 +851,22 @@ if TESTING:
   print(f"Init: {new_init}")
   print(f"Transitions: {new_trans}")
   print(f"Emissions: {new_emit}")
-
-  # And with our own simple starting point of transition states and emission states"
+  
+  print("\nUPDATED STATES:")
+  for i,state in enumerate(test_HMM.states):
+    print(f"STATE {i}: \"{state.name}\"")
+    print(f"Init_p: {state.init_prob}")
+    print(f"emit probs:     {state.emission_probs}")
+    print(f"out_probs: {state.transition_to}")
+    print("\n")
+  print("--------------")
+  '''
+  '# And with our own simple starting point of transition states and emission states"
   number_of_hidden_states = 2
   
   init_probs2, trans_probs2, emit_probs2 = create_simple_default_model(observations,number_of_hidden_states)
   test2_HMM = HMM(init_probs2, trans_probs2, emit_probs2)
   
-  print("--------------")
   for i,state in enumerate(test2_HMM.states):
     print(f"STATE {i}: \"{state.name}\"")
     print(f"Init_p: {state.init_prob}")
@@ -866,5 +883,5 @@ if TESTING:
   print(f"Transitions: {new_trans}")
   print(f"Emissions: {new_emit}")
 
-  
+  '''
   
