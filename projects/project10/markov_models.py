@@ -222,7 +222,7 @@ class HMM:
     current_log_lhood = self.__bw_get_log_lhood(observations[0],return_matrix=False)
     
     # Initialize updated model parameters
-    new_seq_init_v = np.ndarray((N,1))
+    new_seq_init_v = np.ndarray((1,N))
     new_seq_trans_to_m = np.ndarray((N,N))
     new_seq_emissions_m = np.ndarray((N,M))
     
