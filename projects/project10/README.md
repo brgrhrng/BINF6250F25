@@ -259,7 +259,10 @@ as difficult as we thought it might become.
 have the backward matrix longer by one element.  Mea culpa to all.  I have verified 
 with different implementations online that they are done placing the probability space
 values in the t-1 position, and then starting with the t-2 position and filling down 
-until you get to the zeroth position. 
+until you get to the zeroth position.
+4. (Brooks) I successfully  added code to update our states' probabilities "in place"
+when baum-welch is run. This was something we struggled with conceptually, and was
+therefore one of the last features to be added.
 
 # Struggles
 1. (Jacque) Struggled to understand the math behind the algorithm, more specifically,
@@ -282,18 +285,28 @@ already in our hmm model).  This is just me struggling with O-O programming, I e
 6. (Jacque) I continue to struggle with the idea of not knowing if my answer is 
 'correct' or not.  
 7. (Jacque) pseudocode did not work out the way I had planned.
+8. (Brooks) Our class constructor still mandates that we hand it hardcoded dictionaries of
+   probabilities. It's good to have that option, but ideally we shouldn't *have to* if we're
+   going to generate new values with B-W anyway.
+   
+   I wanted to simplify HMM.__init__() to intialize a "blank" HMM from just a list of state
+   names and an emissions alphabet, and then create an optional function outside the class called
+   `HMM_from_probs()` containing the logic to create, populate, and return an HMM based on hardcoded
+   probability dicts. I experimented with this a bit on my local branch, but did not finish the
+   implementation in time to push it before the primary deadline.
+
+   I'm annoyed that I didn't finish this, since it's something we anticipated and planned for way back
+   in project 08 (it's part of why we chose an object-oriented approach in the first place!) I'm still
+   hoping to go back and add it, time permitting.
 
 # Personal Reflections
 ## Group Leader (Brooks)
-Group leader's reflection on the project
+This was certainly the most difficult part of the part of the larger HMM project to plan and implement. Overall I consider Project 10 a success, since our class has the baseline B-W functionality in place; that being said, I would like to devote a little more time to finishing some incomplete "quality of life" features, polishing our code and documentation up to the level of our project 8 and 9 functions, etc.
+
+I really enjoyed designing and implementing our HMM module. I'm happy with what we've accomplished, and
+feel okay calling it "done" (even as I see ways we could polish, improve, and extend the project).
 
 ## Other member (Jacque)
-Other members' reflections on the project:
-
-Left to do in this project:
-    I did not update the hmm model with the newly created model by Baum Welch, just returned
-	the values of the matrices.
-           
 After I was done working on the project, I am planning to continue researching online code and
 papers on the backward algorithm, because the idea of having a 1 in a sum of 
 probabilities in an array bothers me, especially because we are using it in a summation
