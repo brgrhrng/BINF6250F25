@@ -81,11 +81,8 @@ class HMM:
   
 
   def __bw_get_emission_probs(self):
-    '''  Helper function that takes an hmm model
-          returns an emission matrix in log space.
-    Args:
-        self: the model itself which contains both hidden states (N) and
-              emissions states (M) in probability space.
+    '''  
+    Helper function to pack our emission probs into an emission matrix.
     returns: 
         matrix of the emission_probability (2D matrix- NxM) in log space
     '''
@@ -101,8 +98,8 @@ class HMM:
 
 
   def __bw_get_init_probs(self):
-    ''' helper funtion that takes an hmm and returns a vector with the model   
-            initialization probs(N states) in log space.
+    ''' 
+    Helper funtion to pack our inital probs into an init matrix
     returns:
         vector of the init_probs vector of size N of the state list; values 
             are in log space
@@ -118,9 +115,7 @@ class HMM:
 
    
   def __bw_get_trans_to_probs(self):
-    ''' helper funtion that model, and returns a vector with the model 
-              transition state probabilities in log space
-    Args:
+    ''' Helper function to pack our transition probs into a matri
     returns:
         matrix: that size(state_list) x size(state_list)
     '''
@@ -217,11 +212,11 @@ class HMM:
     # return(current model)
     #
   
-    # Initialize
+    # Initialize current model parameters
     current_init_v = self.__bw_get_init_probs() # current_model
     current_trans_to_m = self.__bw_get_trans_to_probs()
     current_emissions_m = self.__bw_get_emission_probs()
-    current_log_lhood = self.__bw_get_log_lhood(observations[0],return_matrix=False)#baseline likelihood
+    current_log_lhood = self.__bw_get_log_lhood(observations[0],return_matrix=False)
     
     N = len(self.states)
     M = len(self.emissions)
@@ -237,10 +232,11 @@ class HMM:
     while (loop_count <= max_loop_count):
       
       updated_model = 0 # initialize count of how many times we update our seq_model
-      new_log_lhood = -np.inf     # (re) initialize new_model
-      new_init_v = np.full((1,N),-np.inf)
-      new_trans_to_m = np.full((N,N),-np.inf)
-      new_emissions_m = np.full((N,M),-np.inf)
+      
+      new_log_lhood = -np.inf
+      new_init_v = np.full((1,N), -np.inf)
+      new_trans_to_m = np.full((N,N), -np.inf)
+      new_emissions_m = np.full((N,M), -np.inf)
       
       # Train on the sequences
       for i, obs in enumerate(observations): # for each of our sequences; train...
@@ -248,7 +244,7 @@ class HMM:
         seq_log_lhood, gamma_m, xi_m = self.bw_EStep(obs, current_init_v, current_trans_to_m, current_emissions_m)
         
         seq_init_v, seq_trans_to_m, seq_emissions_m = self.bw_MStep(obs, gamma_m, xi_m)
-
+        
         # Summarize liklihood as well as sequence models
         if np.isinf(seq_log_lhood) == False: # have we updated?
           updated_model += 1 # count the number of times this was updated
@@ -256,7 +252,6 @@ class HMM:
           new_init_v = np.logaddexp(new_init_v,seq_init_v)
           new_trans_to_m = np.logaddexp(new_trans_to_m,seq_trans_to_m)
           new_emissions_m = np.logaddexp(new_emissions_m, seq_emissions_m)
-      #end for loop
       
       # Scale back by the number of times we increased our 'new model'
       if updated_model:
