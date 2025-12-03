@@ -80,7 +80,7 @@ class HMM:
       self.states.append(new_state)
   
 
-  def bw_get_emission_probs(self):
+  def __bw_get_emission_probs(self):
     '''  Helper function that takes an hmm model
           returns an emission matrix in log space.
     Args:
@@ -100,7 +100,7 @@ class HMM:
     return emission_probs
 
 
-  def bw_get_init_probs(self):
+  def __bw_get_init_probs(self):
     ''' helper funtion that takes an hmm and returns a vector with the model   
             initialization probs(N states) in log space.
     returns:
@@ -117,7 +117,7 @@ class HMM:
     return init_probs
 
    
-  def bw_get_trans_to_probs(self):
+  def __bw_get_trans_to_probs(self):
     ''' helper funtion that model, and returns a vector with the model 
               transition state probabilities in log space
     Args:
@@ -135,7 +135,7 @@ class HMM:
     return trans_probs
 
   
-  def bw_get_log_lhood(self, obs, return_matrix=True):
+  def __bw_get_log_lhood(self, obs, return_matrix=True):
     ''' function to do the 'forward' and 'backward' function calls 
           and return the average log_likelihood.  If return_matrix is set 
           then the function also returns alpha_m and beta_m matrices
@@ -194,34 +194,34 @@ class HMM:
       Maximized hmm model returned as probability space matrices: 
                 init_probs,trans_to_probs,emit_probs
     """
-  # variables that end in _m are matrices
-  #                end in _v is a 1D matrix (init_probs)
-  #                end in _p is a log state probability (single float)
-  #
-  # variables labled "current_" are the current baseline matrices/varables
-  # variables labeld "seq_" or "new_" are the updated versions from training. 
-  #
-  # Note: in log_space -np.inf is considered 'zero'
-  #
-  # Basic plan is:
-  #
-  # Initialize
-  # while loop to iterate many, many times.
-  #   for loop to train over sequences
-  #     using Estep & Mstep calculate new model for seq in seq_
-  #     sum_seq_lhood, and seq_model matrices
-  #   scale back sum_seq and seq_model matrices (in new_)
-  #   check for convergence
-  #     break loop with current model if converged
-  #   if not converged - reset for next while loop iteration
-  # return(current model)
-  #
+    # variables that end in _m are matrices
+    #                end in _v is a 1D matrix (init_probs)
+    #                end in _p is a log state probability (single float)
+    #
+    # variables labled "current_" are the current baseline matrices/varables
+    # variables labeld "seq_" or "new_" are the updated versions from training. 
+    #
+    # Note: in log_space -np.inf is considered 'zero'
+    #
+    # Basic plan is:
+    #
+    # Initialize
+    # while loop to iterate many, many times.
+    #   for loop to train over sequences
+    #     using Estep & Mstep calculate new model for seq in seq_
+    #     sum_seq_lhood, and seq_model matrices
+    #   scale back sum_seq and seq_model matrices (in new_)
+    #   check for convergence
+    #     break loop with current model if converged
+    #   if not converged - reset for next while loop iteration
+    # return(current model)
+    #
   
     # Initialize
-    current_init_v = self.bw_get_init_probs() # current_model
-    current_trans_to_m = self.bw_get_trans_to_probs()
-    current_emissions_m = self.bw_get_emission_probs()
-    current_log_lhood = self.bw_get_log_lhood(observations[0],return_matrix=False)#baseline likelihood
+    current_init_v = self.__bw_get_init_probs() # current_model
+    current_trans_to_m = self.__bw_get_trans_to_probs()
+    current_emissions_m = self.__bw_get_emission_probs()
+    current_log_lhood = self.__bw_get_log_lhood(observations[0],return_matrix=False)#baseline likelihood
     
     N = len(self.states)
     M = len(self.emissions)
