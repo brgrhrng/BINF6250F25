@@ -211,27 +211,31 @@ class HMM:
     #   if not converged - reset for next while loop iteration
     # return(current model)
     #
-  
+    
+    N, M = len(self.states), len(self.emissions)
+    
     # Initialize current model parameters
     current_init_v = self.__bw_get_init_probs() # current_model
     current_trans_to_m = self.__bw_get_trans_to_probs()
     current_emissions_m = self.__bw_get_emission_probs()
     current_log_lhood = self.__bw_get_log_lhood(observations[0],return_matrix=False)
     
-    N = len(self.states)
-    M = len(self.emissions)
-    
-    new_seq_init_v = np.ndarray((N,1)) # create 'new model' arrays
+    # Initialize updated model parameters
+    new_seq_init_v = np.ndarray((N,1))
     new_seq_trans_to_m = np.ndarray((N,N))
     new_seq_emissions_m = np.ndarray((N,M))
     
-    loop_count = 0  # 'while' loop counter
+    
+    # Iterate over training steps until we converge, or max loop count reached
     log_epsilon_p = np.log(epsilon) # convert prob to log_prob
-  
-    # 'while' loop to iterate over training step many times or until converges
-    while (loop_count <= max_loop_count):
+    converged = False
+    loop_count = 0
+    
+    while not converged:
+      if loop_count == max_loop_count:
+        break
       
-      updated_model = 0 # initialize count of how many times we update our seq_model
+      update_count = 0 # initialize count of how many times we update our seq_model
       
       new_log_lhood = -np.inf
       new_init_v = np.full((1,N), -np.inf)
@@ -247,34 +251,35 @@ class HMM:
         
         # Summarize liklihood as well as sequence models
         if np.isinf(seq_log_lhood) == False: # have we updated?
-          updated_model += 1 # count the number of times this was updated
+          update_count += 1 # count the number of times this was updated
           new_log_lhood = np.logaddexp(new_log_lhood,seq_log_lhood)
           new_init_v = np.logaddexp(new_init_v,seq_init_v)
           new_trans_to_m = np.logaddexp(new_trans_to_m,seq_trans_to_m)
           new_emissions_m = np.logaddexp(new_emissions_m, seq_emissions_m)
       
-      # Scale back by the number of times we increased our 'new model'
-      if updated_model:
-        new_log_lhood -= np.log(updated_model)
-        new_init_v -= np.log(updated_model)
-        new_trans_to_m -= np.log(updated_model)
-        new_emissions_m -= np.log(updated_model)
+      if update_count:
+        # Scale back by the number of times we increased our 'new model'
+        new_log_lhood -= np.log(update_count)
+        new_init_v -= np.log(update_count)
+        new_trans_to_m -= np.log(update_count)
+        new_emissions_m -= np.log(update_count)
         
-      #Check for convergence -- will run through each of the observations before exiting
-      if new_log_lhood == current_log_lhood:
-        print(f"Converged {loop_count} iterations to local maximum, log_lhood (equal): {np.exp(new_log_lhood)}")
-        return(np.exp(new_init_v),np.exp(new_trans_to_m),np.exp(new_emissions_m))
-      if (np.exp(new_log_lhood) - np.exp(current_log_lhood)) <= log_epsilon_p:
-        print(f"Converged {loop_count} iterations to local maximum, log_lhood (within epsilon): {np.exp(new_log_lhood)}")
-        return(np.exp(new_init_v),np.exp(new_trans_to_m),np.exp(new_emissions_m))
-      else: # reset for next 'while' loop run
-        current_init_v = new_init_v
-        current_trans_to_m = new_trans_to_m
-        current_emissions_m = new_emissions_m
-        loop_count += 1
+        # Check for convergence -- will run through each of the observations before exiting
+        if new_log_lhood == current_log_lhood:
+          print(f"Converged {loop_count} iterations to local maximum, log_lhood (equal): {np.exp(new_log_lhood)}")
+          converged = True
+        elif (np.exp(new_log_lhood) - np.exp(current_log_lhood)) <= log_epsilon_p:
+          print(f"Converged {loop_count} iterations to local maximum, log_lhood (within epsilon): {np.exp(new_log_lhood)}")
+          converged = True
+        else: # reset for next 'while' loop run
+          current_init_v = new_init_v
+          current_trans_to_m = new_trans_to_m
+          current_emissions_m = new_emissions_m
+      
+      loop_count += 1
 
-    #end of while loop; now we will export current model in prob space
-    return(np.exp(current_init_v),np.exp(current_trans_to_m),np.exp(current_emissions_m)) 
+    # Return updated model in probability space
+    return np.exp(current_init_v), np.exp(current_trans_to_m), np.exp(current_emissions_m)
   
 	
   def bw_EStep(self, obs, pi_m, A_m, B_m): # aka 'Expectation setp'
@@ -298,7 +303,7 @@ class HMM:
     T = len(obs) # length of the obs sequence
     N = len(self.states) # number of hidden states
     
-    avg_log_lhood, alpha_m, beta_m = self.bw_get_log_lhood(obs,return_matrix=True) #runs forward & backward!
+    avg_log_lhood, alpha_m, beta_m = self.__bw_get_log_lhood(obs,return_matrix=True) #runs forward & backward!
     
     # gamma_m is (alpha_m + beta_m) - avg_log_lhood (scalar)
     # math is in log space!
@@ -829,8 +834,8 @@ if TESTING:
 
   print("TEST")
   
-  our_loop_max = 10
-  our_epsilon = 0.00001
+  our_loop_max = 1000
+  our_epsilon = 0.0000001
   new_init, new_trans, new_emit = test_HMM.run_baum_welch(observations,our_loop_max,our_epsilon)
   
   print(f"Baum Welch Recalculated")
