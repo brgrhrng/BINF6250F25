@@ -1,0 +1,45 @@
+---
+title: "Project 11: Profile HMMs"
+output: html_document
+author: "Brooks Groharing and Jacque Caldwell"
+date: "`r format(Sys.time(), '%Y%m%d')`"
+output:
+  github_document:
+    html_preview: false
+    toc: true
+    toc_depth: 2
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE)
+library('reticulate')
+reticulate::use_condaenv(condaenv = "r-reticulate")
+```
+
+```{python py-imports}
+from HMM import HMM
+```
+
+```{python class-definition}
+class ProfileMM(HMM): 
+  """This is a profile HMM, it does profile HMM things.
+  
+  Attributes:
+        alphabet (str): The emissions used in the HMM (default: 'ACGT')
+        hidden_states (str): The hidden states within the HMM (default: None)
+        init_probs (dict of floats): β probabilities for initial steps (default: None)
+        trans_probs (dict of dict of floats): Transition probabilities from one state to another given a state (default: None)
+        emit_probs (dict of dict of floats): Emission probabilities of a letter given a state (default: None)
+  """
+
+  def customMethod():
+    print("huzzah")
+
+
+```
+
+```{python load-data}
+# import data from provided files
+# do stuff
+```
