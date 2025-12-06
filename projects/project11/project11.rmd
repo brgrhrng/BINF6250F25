@@ -101,11 +101,29 @@ class ProfileMM(HMM):
 ```
 
 ```{python load-data}
-# import data from provided files
+#set up for running....
 train_file1="./data/phmm_train_motif1.fasta"
 train_file2="./data/phmm_train_motif2.fasta"
 test_file1="./data/phmm_test_sequences.fasta"
+alphabet='ACDEFGHIKLMNPQRSTVWY'
+hiddenstates = [
+      "M0",        # Begin (silent)
+      "M1", "I1", "D1",
+      "M2", "I2", "D2",
+      "M3", "I3", "D3",
+      "M4"         # End (silent)
+]
 
+# Initial probabilities
+init_probs = {
+  "M0": 1.0,
+  "M1": 0.0, "I1": 0.0, "D1": 0.0,
+  "M2": 0.0, "I2": 0.0, "D2": 0.0,
+  "M3": 0.0, "I3": 0.0, "D3": 0.0,
+  "M4": 0.0
+}
+
+# import data from provided files
 training_sequences1 = read_fasta(train_file1)
 print(f"{training_sequences1}")
 training_sequences2 = read_fasta(train_file2)
@@ -113,7 +131,7 @@ print(f"{training_sequences2}")
 test_sequences1 = read_fasta(test_file1)
 print(f"{test_sequences1}")
 
-myhmm.BaseHMM.alphabet.setter('ACDEFGHIKLMNPQRSTVWY')
-
 # do stuff
+
+
 ```
