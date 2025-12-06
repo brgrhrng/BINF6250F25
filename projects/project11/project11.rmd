@@ -85,7 +85,7 @@ def read_fasta(filename: str) -> dict[str, str]:
 
 ```{python class-definition}
 
-class ProfileMM(HMM):
+class ProfileHMM(HMM):
   """This is a profile HMM, it does profile HMM things.
   
   Attributes:
@@ -112,17 +112,31 @@ class ProfileMM(HMM):
     _estimate_parameters(seqs, col_classifiers)
     
     
-  def _msa_to_classifiers(self, seqs: list[str]) -> list[str]:
+  def _msa_to_classifiers(self, seqs) -> list[str]:
     """
     given: list of strings, or list of lists of chars
     return: list of "M" / "I" classifiers for building profile HMM
-    
-    internal use of a numpy array makes column (ie cross-row) operations
-    much more efficient/easy
     """
-    pass
-  
-  
+    # Bundle seqs into an np array, where each column is 1 char
+    seqs = [list(seq) for seq in seqs]
+    try:
+      seqs = np.array(seqs)
+    except:
+      raise ValueError("Aligned seqs must be equal in length.")
+    
+    # Label columns with <50% gaps as matches
+    #   >=50% are labeled indels
+    col_classifiers = []
+    for column in seqs.T:
+      gap_count = sum(column == "-")
+      if gap_count < 0.5:
+        col_classifiers.append("M")
+      else:
+        col_classifiers.append("I")
+    
+    return col_classifiers
+    
+    
   def _build_topology(self, col_classifiers: list[str]):
     """
     given: list of "M" / "I" classifiers
@@ -137,9 +151,15 @@ class ProfileMM(HMM):
     given: list of "M" / "I" classifiers
     populate hiddenstates list attribute with M0, M/I/D for i:len, M{len+1}
     populate transitions dict according to profile HMM topology
-	--"""
+    """
     pass
-  
+
+
+testHMM = ProfileHMM(alphabet = "ACGT", hidden_states = "asdfb", init_probs = None, trans_probs = None, emit_probs = None, seed = None, precision = 2, tolerance = 1e-10)
+
+testHMM._msa_to_classifiers(["a-df","asdf"])
+#testHMM._msa_to_classifiers([["a","s","d","f"],["b","s","d","f"]])
+#testHMM._msa_to_classifiers(["asdf","bsd"])
 ```
 
 ```{python load-data}
