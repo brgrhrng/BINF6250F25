@@ -46,7 +46,7 @@ except ImportError:
 
 # Gil-ify
 np.set_printoptions(precision = 2)
-pd.set_option('precision', 2)
+pd.set_option('display.precision', 2)
 
 class BaseHMM(object):
     """Base class for HMM objects
