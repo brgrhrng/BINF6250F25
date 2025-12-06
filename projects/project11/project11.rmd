@@ -19,6 +19,7 @@ reticulate::use_condaenv(condaenv = "r-reticulate")
 
 ```{python py-imports}
 from HMM import HMM
+import numpy as np
 ```
 ```{python}
 # read_fasta and supporting functions.
@@ -77,13 +78,14 @@ def read_fasta(filename: str) -> dict[str, str]:
   for name, seq in get_fasta(filepointer): # for each line in the file
     seqs[name] = seq  # put data in Dict
   filepointer.close()
-
+ 
   return(seqs)
 #end read_fasta section
 ```
 
 ```{python class-definition}
-class ProfileMM(HMM): 
+
+class ProfileMM(HMM):
   """This is a profile HMM, it does profile HMM things.
   
   Attributes:
@@ -93,11 +95,51 @@ class ProfileMM(HMM):
         trans_probs (dict of dict of floats): Transition probabilities from one state to another given a state (default: None)
         emit_probs (dict of dict of floats): Emission probabilities of a letter given a state (default: None)
   """
-
-  def customMethod():
-    print("huzzah")
-
-
+  def parse_MSA(self, seqs: list[str]):
+    """
+    given: list of strings, or list of lists of chars
+    populate prof hmm based on a list of aligned seqs
+    
+    this is a wrapper function to call private methods
+    doing the initialization stuff. Builds HMM internally
+    from provided list of aligned seqs
+    """
+    col_classifiers = _msa_to_classifiers(seqs)
+    #hmm attribute length = count of "M" in col_classifiers
+    
+    _build_topology(col_classifers)
+    
+    _estimate_parameters(seqs, col_classifiers)
+    
+    
+  def _msa_to_classifiers(self, seqs: list[str]) -> list[str]:
+    """
+    given: list of strings, or list of lists of chars
+    return: list of "M" / "I" classifiers for building profile HMM
+    
+    internal use of a numpy array makes column (ie cross-row) operations
+    much more efficient/easy
+    """
+    pass
+  
+  
+  def _build_topology(self, col_classifiers: list[str]):
+    """
+    given: list of "M" / "I" classifiers
+    populate hiddenstates list attribute with M0, M/I/D for i:len, M{len+1}
+    populate transitions dict according to profile HMM topology
+    """
+    pass
+  
+  
+  def _estimate_parameters(self, seqs: list[str], col_classifiers: list[str]):
+    """
+    given: list of "M" / "I" classifiers
+    populate hiddenstates list attribute with M0, M/I/D for i:len, M{len+1}
+    populate transitions dict according to profile HMM topology
+	--"""
+    pass
+  
 ```
 
 ```{python load-data}
@@ -130,6 +172,11 @@ training_sequences2 = read_fasta(train_file2)
 print(f"{training_sequences2}")
 test_sequences1 = read_fasta(test_file1)
 print(f"{test_sequences1}")
+
+""" to instantiate our hmm:
+ProfileHMM(alphabet = "ACGT", hidden_states = None, init_probs = None, 
+                 trans_probs = None, emit_probs = None, seed = None, precision = 2, tolerance = 1e-10)
+"""
 
 # do stuff
 
