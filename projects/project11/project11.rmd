@@ -20,6 +20,67 @@ reticulate::use_condaenv(condaenv = "r-reticulate")
 ```{python py-imports}
 from HMM import HMM
 ```
+```{python}
+# read_fasta and supporting functions.
+def get_name_from_string(descriptor:str) -> str:
+  '''function that takes line of information from fasta file
+  Args: 
+      str1: string    'sequence descriptor including name'
+  Output
+      returns string representing the sequence name
+  '''
+  list_of_str = str.split(descriptor)
+  length = len(list_of_str)
+  if length == 0:
+    return("")
+  return (list_of_str[length-1])
+
+def get_fasta(fasta_file):
+  '''Reads in a fasta file (that has already been opened) 
+     one line at a time; getting both the name of a sequence and 
+     the sequence from the file.
+     
+     args:
+        fasta_file filepointer that has already been openned, will read this in
+                  one line at a time, and return the data.
+    returns:
+        name: name of the sequence
+        seq: sequence from the fasta file
+  '''
+  name=''
+  seq=''
+  for line in fasta_file:
+# Capture the next header, report what we have, and update
+    if line.startswith('>') and seq: #not first seq
+      name = get_name_from_string(name[1:]) #removes the carrot
+      yield name, seq
+      name=line.strip()
+      seq=''
+# Get to the first header
+    elif line.startswith('>'):  #first seq
+      name=get_name_from_string(name[1:])
+      name=line.strip()
+# Just add sequence if there is no header
+    else:
+      seq+=line.strip()
+# At the end of the loop, return the last sequence
+  if name and seq: #last seq
+    name = get_name_from_string(name[1:])
+    yield name, seq
+# end get_fasta
+
+def read_fasta(filename: str) -> dict[str, str]:
+# takes in filename, opens file pointer and then reads one line at # a time into the seqs dictionary that contains tuples containing 
+#the name of the seq and the sequence itself.
+  seqs = {}  # initialize dictionary 
+  filepointer = open(filename)
+  for name, seq in get_fasta(filepointer): # for each line in the file
+    seqs[name] = seq  # put data in Dict
+  filepointer.close()
+
+  return(seqs)
+#end read_fasta section
+```
 
 ```{python class-definition}
 class ProfileMM(HMM): 
@@ -41,5 +102,18 @@ class ProfileMM(HMM):
 
 ```{python load-data}
 # import data from provided files
+train_file1="./data/phmm_train_motif1.fasta"
+train_file2="./data/phmm_train_motif2.fasta"
+test_file1="./data/phmm_test_sequences.fasta"
+
+training_sequences1 = read_fasta(train_file1)
+print(f"{training_sequences1}")
+training_sequences2 = read_fasta(train_file2)
+print(f"{training_sequences2}")
+test_sequences1 = read_fasta(test_file1)
+print(f"{test_sequences1}")
+
+myhmm.BaseHMM.alphabet.setter('ACDEFGHIKLMNPQRSTVWY')
+
 # do stuff
 ```
