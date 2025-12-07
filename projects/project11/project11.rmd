@@ -83,30 +83,55 @@ def read_fasta(filename: str) -> dict[str, str]:
 #end read_fasta section
 ```
 
+
 ```{python class-definition}
 
 class ProfileHMM(HMM):
   """This is a profile HMM, it does profile HMM things.
   
   Attributes:
-        alphabet (str): The emissions used in the HMM (default: 'ACGT')
+        alphabet (str): The emissions used in the HMM.
         hidden_states (str): The hidden states within the HMM (default: None)
         init_probs (dict of floats): β probabilities for initial steps (default: None)
         trans_probs (dict of dict of floats): Transition probabilities from one state to another given a state (default: None)
         emit_probs (dict of dict of floats): Emission probabilities of a letter given a state (default: None)
   """
-  def __init__(self, seqs, alphabet = "ACGT", seed = None, precision = 2, tolerance = 1e-10):
+  def __init__(self, seqs, alphabet = "ATCG", seed = None, precision = 2, tolerance = 1e-10):
     """Initialize as a BaseHMM, but then add some additional data"""
     
-    super().__init__(alphabet=alphabet, hidden_states = "x", init_probs = None, 
-    trans_probs = None, emit_probs = None, seed = None, precision=precision, tolerance=tolerance)
+    # Initialize BaseHMM with one dummy state
+    super().__init__(
+      alphabet=alphabet, hidden_states = "x", init_probs = None,
+      trans_probs = None, emit_probs = None, seed = None,
+      precision=precision, tolerance=tolerance)
     
-    # Generate states and probabilities using provided seqs
+    # Generate and overwrite  states and probabilities using provided seqs
     col_classifiers = self._msa_to_classifiers(seqs)
     self._build_topology(col_classifiers)
-    self._estimate_parameters(seqs, col_classifiers)
-
-
+    #self._estimate_parameters(seqs, col_classifiers)
+  
+  
+  @property
+  def hidden_states(self):
+    return self._hidden_states
+  
+  @hidden_states.setter
+  def hidden_states(self, hidden_states):
+    """Allow multi-char state names in hidden_states, storing as a list of str"""
+    if isinstance(hidden_states, str):
+      self._hidden_states = [char for char in hidden_states]
+    elif isinstance(hidden_states, (tuple, list)):
+      self._hidden_states = [str(item) for item in hidden_states]
+      
+      
+  def _hardcode_transition(self, in_state: str, out_state: str, prob=0.0):
+    """Hardcode a transition from in_state to out_state to internal transition dict.
+    This has no internal safeguards--use with caution. 
+    """
+    self._transition[in_state] = self._transition.get(in_state, {})
+    self._transition[in_state][out_state] = prob
+    
+    
   def _msa_to_classifiers(self, seqs) -> list[str]:
     """
     given: list of strings, or list of lists of chars
@@ -128,7 +153,7 @@ class ProfileHMM(HMM):
         col_classifiers.append("M")
       else:
         col_classifiers.append("I")
-    
+        
     return col_classifiers
     
     
@@ -138,12 +163,44 @@ class ProfileHMM(HMM):
     populate hidden_states_list attribute with M0, M/I/D for i:len, M{len+1}
     populate transitions dict according to profile HMM topology
     """
-    #self.hidden_states = "" # 
-    pass
+    #trans_probs = zip([1,2,3,4],[{}]*4)
     
+    self.hidden_states = []
+    self._transition = {}
     
+    # Initial State
+    self.hidden_states += ["M0","I0"]
     
-  
+    # Middle States
+    mi = 1
+    for classifier in col_classifiers:
+      if classifier == "M":
+        # Create M/I/D states for column
+        self.hidden_states += [f"M{mi}", f"I{mi}", f"D{mi}"]
+        
+        # encode transitions into current M state
+        self._hardcode_transition(f"M{mi-1}", f"M{mi}")
+        self._hardcode_transition(f"I{mi-1}", f"M{mi}")
+        if mi > 1: self._hardcode_transition(f"D{mi-1}", f"M{mi}")
+        
+        # encode transitions into current D state
+        self._hardcode_transition(f"M{mi-1}", f"D{mi}")
+        self._hardcode_transition(f"I{mi-1}", f"D{mi}")
+        if mi > 1: self._hardcode_transition(f"D{mi-1}", f"D{mi}")
+        
+        # encode insertion transitions
+        self._hardcode_transition(f"M{mi}", f"I{mi}")
+        self._hardcode_transition(f"I{mi}", f"I{mi}")
+        self._hardcode_transition(f"D{mi}", f"I{mi}")
+        
+        mi += 1
+    
+    # Terminal state
+    self.hidden_states += [f"M{mi}"]
+    self._hardcode_transition(f"M{mi-1}", f"M{mi}")
+    self._hardcode_transition(f"I{mi-1}", f"M{mi}")
+    self._hardcode_transition(f"D{mi-1}", f"M{mi}")
+    
   def _estimate_parameters(self, seqs: list[str], col_classifiers: list[str]):
     """
     given: list of "M" / "I" classifiers
@@ -151,15 +208,11 @@ class ProfileHMM(HMM):
     populate transitions dict according to profile HMM topology
     """
     pass
+    
 
-
-#testHMM = ProfileHMM(alphabet = "ACGT", hidden_states = "asdfb", init_probs = None, trans_probs = None, emit_probs = None, seed = None, precision = 2, tolerance = 1e-10)
 
 testHMM = ProfileHMM(["a-df","asdf"])
-
-#testHMM._msa_to_classifiers(["a-df","asdf"])
-#testHMM._msa_to_classifiers([["a","s","d","f"],["b","s","d","f"]])
-#testHMM._msa_to_classifiers(["asdf","bsd"])
+print(testHMM)
 ```
 
 ```{python load-data}
