@@ -183,7 +183,7 @@ _estimate_parameters(seqs, col_classifiers):
 			
 	# Terminal state
 	end probabilities = 0
-	set ed state emission dict to None
+	set end state emission dict to None
 ```
 
 # Successes
