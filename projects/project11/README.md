@@ -104,52 +104,86 @@ _build_topology(list of "M" / "I" classifiers)
 	add Dmi-1 -> Mmi to transitions
 
 
-
 _estimate_parameters(seqs, col_classifiers):
 	----------------------------------------------
 	given: list of seqs, list of "M" / "I" classifiers
 	estimate HMM attributes:
 		init_probs, trans_probs, and emit_probs 
 	-------------------------------------------------
+
 	bundle lists into an np.array # will error if lists are unequal
 	
-	get global frequency of each residue in array
+	num_hidden_states = length(self.hidden_states)
+	L = length(seqs[0])
 	
-	# Init and emission probs
+	get whole_alphabet for emissions with size
+	get alphabet_size
+	get_global_frequency of each unique residue in each seq of seqs (this function should normalize these)
+	    return this in a list_of_all that matches length of alphabet or in dictionary
+	            if we could return this with a minium value 
+    if we only do this on the frequency of residues from our sequences, then...
+        smallest_residue = find min of list of all / 2
+	
 	# Initial state
-	p(init)_Mm0 = 1
-	set Mm0 and Em0 emission dicts to None 
+    Initialize init_probs M0 = 1.0 
+        all other hiddenstates = 0
+        init_state emission dict = 0 
 	
 	# Middle states
-	match_index = 1
-	for classifier in list of classifers:
-		p(init)_Mmi = 0	
-		if classifer is "M":
-			for each unique character in column mi of seq array:
-				p(Mmi emits char) = (char in col + b)/(char in col + 20*b) # b>0; prevents div by 0				
-		
+	## Emission Matrix
+	create np.ndarray.fill(smallest_residue,hiddenstates)
+	
+	#now we will overwrite the matrix with our seq based residue "emissions"
+	for seq_index, classifier in list of col_classifers:
+        Get the residues in the seq_index column of sequences # for seq in seqs; residues+=seq[seq_index]
+	    if classifer is "M":
+			for each unique character/aa in residues: # set
+			    if not gap:
+			        key = aa
+			        count = residues.count(key) # string.count(char)
+			        value = (count + b)/(length(residues) + alphabet_size*b) # b>0;prevents div by 0		
 		elif classifier is "I":
-			for each unique character in column mi of seq array:
-				p(Imi emits char) = global frequency of character
-			
-			set Dmi emission dict to None # 1 D for every I
 		
-		increment match_index by 1
-	
-	# Terminal state
-	p(init)_Mmi = 0
-	set Mmi emission dict to None
-	
-	
-	# Transition probs
+			for each unique character/aaa in residues: #set
+			    if not gap:
+			        key = aa
+			        value = lookup in global residue dictionary from above
+			
+		#else:	set Dmi emission dict to None 
+	Normalize emissions matrix after finishing
+		
+    ## Transition Matrix - first build the labels array ; count them ; then calculate probs
 	build labels array:
-		if match col:
-			replace non-"-" with Mi
-			replace "-" with Di
-		if insert col:
-			replace non-"-" with Ii
-	
-	use labels array to populate transition probabilities
+	match_index = 1
+	seq_labels = "" # this will be a list of a "list of states"; representing the seqs labeled
+	new_label = ""  # this will be a list of states that represents a single seq
+	for seq in seqs
+	    for seq_index, classifier in list of col_classifiers:
+		    if classifier == match column:
+			    replace non-"-" with "M"+match_index
+			    replace "-" with "D"+seq_index
+			    append to new_label
+			    match_index++
+		    elif classifier == insert col:
+			    replace non-"-" with I+(seq_index-1)
+			    append to new_label
+		append new_label on seq_labels list
+		reset new_label=""
+	    #end for seq_index, classifier
+    #end for seq
+    
+    Transition probabilities calculation:
+            From labeled paths (seq_labels), 
+                count each observed state transition 's→s' across all sequences.
+            Convert counts to probabilities with pseudocounts:
+                a(s,s') = c(s,s') + b / summation s [c(s,s'') + b*size_of_alphabet]
+                    where b is a small pseudocount
+        
+        Each row of the transition matrix must sum to 1.0 I.e NORMALIZE
+			
+	# Terminal state
+	end probabilities = 0
+	set ed state emission dict to None
 ```
 
 # Successes
