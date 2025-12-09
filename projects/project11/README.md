@@ -6,6 +6,7 @@ A profile HMM is a position-specific HMM architecture tailored to model a conser
 
 Key Features
 * Position-specific emissions:
+<<<<<<< HEAD
 ...Match states Mi use column-specific amino acid distributions estimated from the MSA.
 ...Insertion states Ii share a background composition independent of position.
 * Explicit gap handling:
@@ -14,6 +15,16 @@ Key Features
 ...Structured transitions between Mi,Ii,Di encode allowed motif-length variation.
 * Probabilistic scoring:
 ... Forward, Viterbi, and Forward–Backward algorithms from HMM.py are reused to score sequences and, if desired, retrain parameters.
+=======
+** Match states Mi use column-specific amino acid distributions estimated from the MSA.
+** Insertion states Ii share a background composition independent of position.
+* Explicit gap handling:
+** Deletion states Di are silent and model gaps by skipping columns without emitting residues.
+* Left-to-right topology:
+** Structured transitions between Mi,Ii,Di encode allowed motif-length variation.
+* Probabilistic scoring:
+** Forward, Viterbi, and Forward–Backward algorithms from HMM.py are reused to score sequences and, if desired, retrain parameters.
+>>>>>>> f9d47a837e18819e8c958b4032137161ffb1878e
 
 # Pseudocode
 Put pseudocode in this box:
