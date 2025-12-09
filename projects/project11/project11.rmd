@@ -156,7 +156,7 @@ class ProfileHMM(HMM):
         col_classifiers = []
         for column in seqs.T:
             gap_count = sum(column == "-")
-            if gap_count < 0.5:
+            if gap_count/len(column) < 0.5:
                 col_classifiers.append("M")
             else:
                 col_classifiers.append("I")
