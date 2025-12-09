@@ -20,21 +20,31 @@ reticulate::use_condaenv(condaenv = "r-reticulate")
 ```{python py-imports}
 from HMM import HMM
 import numpy as np
+
+# Constants for Ease of use
+AA_ALPHABET = "ARNDCEQGHILKMFPSTWYV"
+NT_ALPHABET = "ATCG"
+
+TESTING = False
 ```
+
+
 ```{python}
 # read_fasta and supporting functions.
 def get_name_from_string(descriptor:str) -> str:
-  '''function that takes line of information from fasta file
-  Args: 
+    '''function that takes line of information from fasta file
+    Args: 
       str1: string    'sequence descriptor including name'
-  Output
+    Output
       returns string representing the sequence name
-  '''
-  list_of_str = str.split(descriptor)
-  length = len(list_of_str)
-  if length == 0:
+    '''
+    if descriptor:
+        list_of_str = " ".split(descriptor)
+        length = len(list_of_str)
+        if length == 0:
+            return("")
+        return (list_of_str[length-1])
     return("")
-  return (list_of_str[length-1])
 
 def get_fasta(fasta_file):
   '''Reads in a fasta file (that has already been opened) 
@@ -70,16 +80,16 @@ def get_fasta(fasta_file):
     yield name, seq
 # end get_fasta
 
-def read_fasta(filename: str) -> dict[str, str]:
+def read_fasta(filename: str):
 # takes in filename, opens file pointer and then reads one line at # a time into the seqs dictionary that contains tuples containing 
 #the name of the seq and the sequence itself.
-  seqs = {}  # initialize dictionary 
-  filepointer = open(filename)
-  for name, seq in get_fasta(filepointer): # for each line in the file
-    seqs[name] = seq  # put data in Dict
-  filepointer.close()
+    seqs = []  # initialize list
+    filepointer = open(filename)
+    for name, seq in get_fasta(filepointer): # for each line in the file
+        seqs.append(seq)  # put data in list
+    filepointer.close()
  
-  return(seqs)
+    return(seqs)
 #end read_fasta section
 ```
 
@@ -87,136 +97,282 @@ def read_fasta(filename: str) -> dict[str, str]:
 ```{python class-definition}
 
 class ProfileHMM(HMM):
-  """This is a profile HMM, it does profile HMM things.
+    """This is a profile HMM, it does profile HMM things.
   
-  Attributes:
+    Attributes:
         alphabet (str): The emissions used in the HMM.
         hidden_states (str): The hidden states within the HMM (default: None)
         init_probs (dict of floats): β probabilities for initial steps (default: None)
         trans_probs (dict of dict of floats): Transition probabilities from one state to another given a state (default: None)
         emit_probs (dict of dict of floats): Emission probabilities of a letter given a state (default: None)
-  """
-  def __init__(self, seqs, alphabet = "ATCG", seed = None, precision = 2, tolerance = 1e-10):
-    """Initialize as a BaseHMM, but then add some additional data"""
-    
-    # Initialize BaseHMM with one dummy state
-    super().__init__(
-      alphabet=alphabet, hidden_states = "x", init_probs = None,
-      trans_probs = None, emit_probs = None, seed = None,
-      precision=precision, tolerance=tolerance)
+    """
+    def __init__(self, seqs, alphabet = "ATCG", seed = None, precision = 2, tolerance = 1e-10):
+        """Initialize as a BaseHMM, but then add some additional data
+        """
+        # Initialize BaseHMM with one dummy state
+        super().__init__( alphabet=alphabet, hidden_states = "x", init_probs = None, trans_probs = None, emit_probs = None, seed = None, precision=precision, tolerance=tolerance)
     
     # Generate and overwrite  states and probabilities using provided seqs
-    col_classifiers = self._msa_to_classifiers(seqs)
-    self._build_topology(col_classifiers)
-    #self._estimate_parameters(seqs, col_classifiers)
+        col_classifiers = self._msa_to_classifiers(seqs)
+        self._build_topology(col_classifiers)
+        self._estimate_parameters(seqs, col_classifiers)
   
   
-  @property
-  def hidden_states(self):
-    return self._hidden_states
+    @property
+    def hidden_states(self):
+        return self._hidden_states
   
-  @hidden_states.setter
-  def hidden_states(self, hidden_states):
-    """Allow multi-char state names in hidden_states, storing as a list of str"""
-    if isinstance(hidden_states, str):
-      self._hidden_states = [char for char in hidden_states]
-    elif isinstance(hidden_states, (tuple, list)):
-      self._hidden_states = [str(item) for item in hidden_states]
+    @hidden_states.setter
+    def hidden_states(self, hidden_states):
+        """Allow multi-char state names in hidden_states, storing as a list of str"""
+        if isinstance(hidden_states, str):
+            self._hidden_states = [char for char in hidden_states]
+        elif isinstance(hidden_states, (tuple, list)):
+            self._hidden_states = [str(item) for item in hidden_states]
       
       
-  def _hardcode_transition(self, in_state: str, out_state: str, prob=0.0):
-    """Hardcode a transition from in_state to out_state to internal transition dict.
-    This has no internal safeguards--use with caution. 
-    """
-    self._transition[in_state] = self._transition.get(in_state, {})
-    self._transition[in_state][out_state] = prob
+    def _hardcode_transition(self, in_state: str, out_state: str, prob=0.0):
+        """Hardcode a transition from in_state to out_state to internal transition dict.
+        This has no internal safeguards--use with caution. 
+        """
+        self._transition[in_state] = self._transition.get(in_state, {})
+        self._transition[in_state][out_state] = prob
   
   
-  def _msa_to_classifiers(self, seqs) -> list[str]:
-    """
-    given: list of strings, or list of lists of chars
-    return: list of "M" / "I" classifiers for building profile HMM
-    """
-    # Bundle seqs into an np array, where each column is 1 char
-    seqs = [list(seq) for seq in seqs]
-    try:
-      seqs = np.array(seqs)
-    except:
-      raise ValueError("Aligned seqs must be equal in length.")
+    def _msa_to_classifiers(self, seqs) -> list[str]:
+        """
+        given: list of strings, or list of lists of chars
+        return: list of "M" / "I" classifiers for building profile HMM
+        """
+        # Bundle seqs into an np array, where each column is 1 char
+        seqs = [list(seq) for seq in seqs]
+        try:
+            seqs = np.array(seqs)
+        except:
+            raise ValueError("Aligned seqs must be equal in length.")
     
-    # Label columns with <50% gaps as matches
-    #   >=50% are labeled indels
-    col_classifiers = []
-    for column in seqs.T:
-      gap_count = sum(column == "-")
-      if gap_count < 0.5:
-        col_classifiers.append("M")
-      else:
-        col_classifiers.append("I")
+        # Label columns with <50% gaps as matches
+        #   >=50% are labeled indels
+        col_classifiers = []
+        for column in seqs.T:
+            gap_count = sum(column == "-")
+            if gap_count < 0.5:
+                col_classifiers.append("M")
+            else:
+                col_classifiers.append("I")
         
-    return col_classifiers
+        return col_classifiers
+
+    def _build_topology(self, col_classifiers: list[str]):
+        """
+        given: list of "M" / "I" classifiers
+        populate hidden_states_list attribute with M0, M/I/D for i:len, M{len+1}
+        populate transitions dict according to profile HMM topology
+        """
+        self.hidden_states = []
+        self._transition = {}
+        self._initial = {}
     
+        # Initial State
+        self.hidden_states += ["M0","I0"]
+        self._initial["M0"] = 1.0
+        self._initial["I0"] = 0.0
     
-  def _build_topology(self, col_classifiers: list[str]):
-    """
-    given: list of "M" / "I" classifiers
-    populate hidden_states_list attribute with M0, M/I/D for i:len, M{len+1}
-    populate transitions dict according to profile HMM topology
-    """
-    self.hidden_states = []
-    self._transition = {}
-    self._initial = {}
-    
-    # Initial State
-    self.hidden_states += ["M0","I0"]
-    self._initial["M0"] = 1.0
-    self._initial["I0"] = 0.0
-    
-    # Middle States
-    mi = 1
-    for classifier in col_classifiers:
-      if classifier == "M":
-        # Create M/I/D states for column
-        for state in (f"M{mi}", f"I{mi}", f"D{mi}"):
-          self.hidden_states += [state]
-          self._initial[state] = 0.0
+        # Middle States
+        mi = 1
+        for classifier in col_classifiers:
+            if classifier == "M":
+                # Create M/I/D states for column
+                for state in (f"M{mi}", f"I{mi}", f"D{mi}"):
+                    self.hidden_states += [state]
+                    self._initial[state] = 0.0
           
-        # encode transitions into current M state
+                # encode transitions into current M state
+                self._hardcode_transition(f"M{mi-1}", f"M{mi}")
+                self._hardcode_transition(f"I{mi-1}", f"M{mi}")
+                if mi > 1: self._hardcode_transition(f"D{mi-1}", f"M{mi}")
+        
+                # encode transitions into current D state
+                self._hardcode_transition(f"M{mi-1}", f"D{mi}")
+                self._hardcode_transition(f"I{mi-1}", f"D{mi}")
+                if mi > 1: self._hardcode_transition(f"D{mi-1}", f"D{mi}")
+        
+                # encode insertion transitions
+                self._hardcode_transition(f"M{mi}", f"I{mi}")
+                self._hardcode_transition(f"I{mi}", f"I{mi}")
+                self._hardcode_transition(f"D{mi}", f"I{mi}")
+        
+                mi += 1
+    
+        # Terminal state
+        self.hidden_states += [f"M{mi}"]
         self._hardcode_transition(f"M{mi-1}", f"M{mi}")
         self._hardcode_transition(f"I{mi-1}", f"M{mi}")
-        if mi > 1: self._hardcode_transition(f"D{mi-1}", f"M{mi}")
+        self._hardcode_transition(f"D{mi-1}", f"M{mi}")
+
+        return
+    
+    
+    def _get_residue_frequency(self,seqs):
+        ''' helper function to take in the sequences, and create a list of
+        counted residues the sequences alphabet
+        Args:
+          seqs: list of aligned FASTA sequences
+        returns:
+          residues: dict with key being a unique residue character 
+          and value being frequency of that residue in the sequences given.
+          smallest: min frequency of the items in residues
+        '''
+        big_string = ""
         
-        # encode transitions into current D state
-        self._hardcode_transition(f"M{mi-1}", f"D{mi}")
-        self._hardcode_transition(f"I{mi-1}", f"D{mi}")
-        if mi > 1: self._hardcode_transition(f"D{mi-1}", f"D{mi}")
+        for seq in seqs: 
+            big_string += seq
+    
+        big_string = big_string.replace("-", "")  #remove the gaps
+    
+        alphabet = sorted(set(big_string)) #create an alphabet from our str
+        result_dict = dict.fromkeys(alphabet,0) #create the dict with keys
+  
+        sum_of_all = 0
+        for char in result_dict:
+            result_dict[char] = big_string.count(char) # put counts into dict
+            sum_of_all += result_dict[char] #accumulate to normalize
         
-        # encode insertion transitions
-        self._hardcode_transition(f"M{mi}", f"I{mi}")
-        self._hardcode_transition(f"I{mi}", f"I{mi}")
-        self._hardcode_transition(f"D{mi}", f"I{mi}")
+        return(sum_of_all, result_dict)
+    
+    
+    def _estimate_parameters(self, seqs: list[str], col_classifiers: list[str]):
+        """
+        given a list of aligned training FASTA sequences, and a prepopulated           col_classifier, estimate the transitions and emissions matrices 
+        based both input.
+        given: 
+            seqs: list of aligned FASTA sequences to train on
+            col_classifiers: list of "M" / "I" classifiers
+    
+        using: 
+            self.alphabet
+            self.hidden_states
+        setting/referrencing
+            self.init_probs # already set by toplogy
+            self.trans_probs # our created transition probs 
+            self.emit_probs # our created emission probs
+        """
+        num_hidden_states = len(self.hidden_states)
+        L = len(seqs[0])
+        gap = "-"
+        b = 1 # aka psseudocount
+	
+        whole_alphabet = self.alphabet
+        alphabet_size = len(whole_alphabet)
+	    
+	    # build labels array:
+        seq_labels = [] # list of a "list of seq"; rep the labeled seqs
+        new_label = []  # list of states that represent a labeled seq
+        if TESTING: print(f"col_classifiers: {col_classifiers}")
+        if TESTING: print(f"seqs: {seqs}")
+        for seq in seqs:    # review list of seqs one seq at a time
+            seq_index = 0   # set to begining of seq each time
+            match_index = 1 # start with M1 with each sequence
+            for classifier in col_classifiers: # look at classifications
+                if classifier == "M":
+                    if seq[seq_index] == gap:
+                        new_label.append("D"+str(seq_index))
+                    else:
+                        new_label.append("M"+str(match_index))
+                        match_index += 1
+                elif classifier == "I":
+                    if seq[seq_index] == gap:
+                        new_label.append("-")
+                    else:
+                        new_label.append("I"+str(seq_index-1)) 
+                seq_index += 1 # move to the next residue/state
+            seq_labels.append(new_label)
+            new_label=[] # reset for the next sequence
+	        #end for seq_index, classifier
+        #end for seq
+        if TESTING: print(seq_labels)
         
-        mi += 1
+    # Now we can start creating prob matrices
+	
+  	# Initial State probs
+  	  # these are set already by _build_topology()
+  	  # init_probs needs M0 = 1.0 and I0 = 0.0
+  	  # emision dict empty; 
+        if TESTING: print(f"init probs, {self.init_probs}") 
+        
+	# Middle state probs
+	## Emission Matrix ; create for hidden_states x entire possible alphabet
+    ## First we count the residues
+        sum_all_res_cnts, all_res_cnts = self._get_residue_frequency(seqs)
+        
+    # now do the emissions calculations; store in dictionary w
+        e_values = {}
+        i_values = {}
+        col_residues = ""
+        for classifier in col_classifiers:
+            seq_index = 1
+            for seq in seqs:
+                col_residues+=seq[seq_index] # str of the residues in the seq_index column 
+            if classifier == "M":
+                for char in set(col_residues):  # cycle through unique residues
+                    if not(char == gap):
+                        cnt = col_residues.count(char) # number in this col
+                        tot = len(col_residues)
+                        e_values[char]=(cnt + b)/(tot+(alphabet_size*b))
+                
+            elif classifier == "I":
+                for char in set(col_residues): #again cycle residues in col
+                    if not(char == gap):
+                        i_values[char]=(all_res_cnts[char] +b)/ (sum_all_res_cnts + alphabet_size*b)
+                       
+            #else:???	set Dmi emission dict to None
+            seq_index += 1
     
-    # Terminal state
-    self.hidden_states += [f"M{mi}"]
-    self._hardcode_transition(f"M{mi-1}", f"M{mi}")
-    self._hardcode_transition(f"I{mi-1}", f"M{mi}")
-    self._hardcode_transition(f"D{mi-1}", f"M{mi}")
+        emission_probs = np.full((num_hidden_states,alphabet_size),0)	    #now we will overwrite the parts of the emission_probs array with our seq based residue "emissions"
     
+        for s, state in self.hidden_states: #sum emisions for each state
+            row_sum = 0
+            if state == "M":
+                for e, char in alphabet:
+                    if e_values[char]:
+                        emission_probs[s,e] = e_values[char]
+            if state == "I":
+                for e, char in alphabet:
+                    if i_values[char]:
+                        emission_probs[s,e] = i_values[char]
+            # if state == "D": no emission values for D, leave as 0
+            
+            row_sums = emission_probs.sum(axis=1, keepdims=True)
+            emission_probs = np.divide(emission_probs, row_sums, where=row_sums!=0)
     
-  def _estimate_parameters(self, seqs: list[str], col_classifiers: list[str]):
-    """
-    given: list of "M" / "I" classifiers
-    populate hiddenstates list attribute with M0, M/I/D for i:len, M{len+1}
-    populate transitions dict according to profile HMM topology
-    """
-    pass
-    
+        if TESTING: print(f"emission_probs: {emission_probs}")
+		  
+      #  self.emit_probs(emission_probs)	 
+		
+    ## Transition Matrix
+        # Build labels array # hidden_states x L (sequence length) (done above)
+        # count them; calculate probs then normalize
+        # set in class
+  
+  #Transition probabilities counting, calculation:
+       # seq_state_counts = Counter(seq_labels)
+
+#            From labeled paths (seq_labels), 
+#                count each observed state transition 's→s' across all sequences.
+#            Convert counts to probabilities with pseudocounts:
+#                a(s,s') = c(s,s') + b / summation s [c(s,s'') + b*size_of_alphabet]
+#                    where b is a small pseudocount
+        
+#        Each row of the transition matrix must sum to 1.0 I.e NORMALIZE
+			
+	# Terminal state
+#	end probabilities = 0
+#	set end state emission dict to None
+	
+        return
 
 
-testHMM = ProfileHMM(["a-df","asdf"])
-print(testHMM)
+
 ```
 
 ```{python load-data}
@@ -224,23 +380,6 @@ print(testHMM)
 train_file1="./data/phmm_train_motif1.fasta"
 train_file2="./data/phmm_train_motif2.fasta"
 test_file1="./data/phmm_test_sequences.fasta"
-alphabet='ACDEFGHIKLMNPQRSTVWY'
-hiddenstates = [
-      "M0",        # Begin (silent)
-      "M1", "I1", "D1",
-      "M2", "I2", "D2",
-      "M3", "I3", "D3",
-      "M4"         # End (silent)
-]
-
-# Initial probabilities
-init_probs = {
-  "M0": 1.0,
-  "M1": 0.0, "I1": 0.0, "D1": 0.0,
-  "M2": 0.0, "I2": 0.0, "D2": 0.0,
-  "M3": 0.0, "I3": 0.0, "D3": 0.0,
-  "M4": 0.0
-}
 
 # import data from provided files
 training_sequences1 = read_fasta(train_file1)
@@ -250,12 +389,10 @@ print(f"{training_sequences2}")
 test_sequences1 = read_fasta(test_file1)
 print(f"{test_sequences1}")
 
-""" to instantiate our hmm:
-ProfileHMM(alphabet = "ACGT", hidden_states = None, init_probs = None, 
-                 trans_probs = None, emit_probs = None, seed = None, precision = 2, tolerance = 1e-10)
-"""
-
 # do stuff
-
+testHMM = ProfileHMM(training_sequences1,alphabet=AA_ALPHABET)
+testHMM2 = ProfileHMM(training_sequences2,alphabet=AA_ALPHABET)
+print(testHMM)
+print(testHMM2)
 
 ```
