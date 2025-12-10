@@ -163,42 +163,29 @@ _estimate_parameters(seqs, col_classifiers):
 		#else:	set Dmi emission dict to None 
 	Normalize emissions matrix after finishing
 		
-    ## Transition Matrix - first build the labels array ; count them ; then calculate probs
+    ## Transition Matrix - first build the labels array ; 
+                            count them ; then calc probs
 	build labels array:
-	match_index = 1
-	seq_labels = "" # this will be a list of a "list of states"; representing the seqs labeled
-	new_label = ""  # this will be a list of states that represents a single seq
-	for seq in seqs
-	    for seq_index, classifier in list of col_classifiers:
-		    if classifier == match column:
-			    replace non-"-" with "M"+match_index
-			    replace "-" with "D"+seq_index
-			    append to new_label
-			    match_index++
-		    elif classifier == insert col:
-			    replace non-"-" with I+(seq_index-1)
-			    append to new_label
-		append new_label on seq_labels list
-		reset new_label=""
-	    #end for seq_index, classifier
-    #end for seq
-    
-    Transition probabilities calculation:
-            From labeled paths (seq_labels), 
-                count each observed state transition 's→s' across all sequences.
-            Convert counts to probabilities with pseudocounts:
-                a(s,s') = c(s,s') + b / summation s [c(s,s'') + b*size_of_alphabet]
-                    where b is a small pseudocount
-        
-        Each row of the transition matrix must sum to 1.0 I.e NORMALIZE
+        From labeled paths (seq_labels)
+            count states observed
+        create paired list from labeled paths
+            count state_transitions observed (this is c(s,s') across all sequences)
+        Convert counts to probabilities with pseudocounts:
+            a(s,s') = c(s,s') + b / summation states[c(s,s') + b*size_of_alphabet]
+          ie: A_m or the transition matrix comes from counting the state_transitions
+        Each row of the transition matrix must sum to 1.0 I.e NORMALIZED
+        put matrix into dictionary
+        return transition probs in dictionary
 			
 	# Terminal state
 	end probabilities = 0
 	set end state emission dict to None
+
+
 ```
 
 # Successes
-We have something to present.   I'm not sure it's pretty or complete or even useful, but it's there.
+We have something to present.   I'm not sure it's pretty or complete or even useful, but it's there.  Creates a model given sequences from the FASTA files.  
 
 
 # Struggles
