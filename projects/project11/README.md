@@ -184,23 +184,43 @@ _estimate_parameters(seqs, col_classifiers):
 
 ```
 
-# Successes
-We have something to present.   I'm not sure it's pretty or complete or even useful, but it's there.  Creates a model given sequences from the FASTA files.  
+# Notes
+According to the assigment:
+The required functionality is:
+At a minimum:
+A. Read MSA FASTA file and build a profile HMM (done, wrapping the BaseHMM/HMM classes)
+B. Export learned init_probs, trans_probs, and emit_probs (done: output1.txt) 
+C. Given new protein sequences (assume "testing" sequences):
+* Compute likelihood via HMM.py's forward method (see note2 below)
+* Compute the most likely path (Viterbi) and interpret match vs insertion vs deletion positions (again, see note1 below)
+D. Provide a short script or notebook demostrating:
+* Model construction from the training MSA
+* Scoring of positive test sequences that contain the motif
+* scoring of negative control sequences that lack the motif (or have disrupted motif)
 
+Note1: File output for showing 'init_probs', 'emission_probs' and 'transition_probs' of the two training sequences is in "output1.txt".
+
+Note2: As we decided to implement our Class with the dictionary format that seems to be preferred by the HMM classes, we created list of Dicts of Dicts as previously noted, however our implementation's "M0" (initialization state) emission probability is set to None - which does not work with as written HMM.py code (it fails in the second line as the M0 "None" is not subscriptable into any residues). 
+
+While I could (and did) try to set the M0 emission states to our default, the error continues to be a problem when forward gets to the emission probabilities for the delete states.  The next idea I had was to decrease the size of the the "hidden_states" by all of the 'None' states.  Running this with the the first test sequence, forward still gets an error on the first line.   We just ran out of time.
+
+# Successes
+We have something to present.   I'm not sure it's pretty or complete or even useful, but it's there.  Creates a model given sequences from the FASTA files.  Unable to make this run with forward() or the other HMM functions, but I think we were on the edge of a break through.
 
 # Struggles
 Struggled with integrating all of the information given regarding this project (and the many different ways of saying similar things), with varying success.  Understanding mathematical equations when they are written in different ways with different variables, and in different contexts was particularly difficult with this one.  
 
-Downtime after 7pm on Sunday night because the machine hosting the OOD server was down because it's domain certification was lost, and parts of the internet didn't trust the computer to do DNS, etc. Unfortunate timing.
+Downtime after 7pm on Sunday night because the machine hosting the OOD server was down because it's domain certification was lost, and parts of the internet didn't trust the computer to do DNS, etc. Unfortunate timing.  Another unavailable OOD server/Explorer 12/10/25 AM ~ 1hour (proxy server errors, unable to log in)
 
 # Personal Reflections
 ## Brooks
 Group leader's reflection on the project
 
 ## Jacque
-I'm tired.  Not much left to give regarding reflections.  This sounded
-like a basic implementation, but was not quite as straight forward as
-that.  Additional requirments for this week, including having to review a three week project x 2; didn't help the time requirement issue.
+I'm tired.  Not much left to give regarding reflections.  This sounded like a basic 
+implementation, but was not quite as straight forward as that.  Additional requirements 
+for this week, including having to review a three week project x 2; didn't help the time 
+requirement issue, and neither did cluster downtime.
 
 # Generative AI Appendix
-As per the syllabus
+(jacque) Claude.ai input on Profile HMM contexts.
