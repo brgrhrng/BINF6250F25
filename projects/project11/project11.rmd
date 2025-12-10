@@ -97,6 +97,8 @@ def read_fasta(filename: str):
 
 ```{python class-definition}
 
+PSEUDO_COUNT = 0.01 # small offset added to counts in prob calcs to avoid div-0 errors
+
 class ProfileHMM(HMM):
     """This is a profile HMM, it does profile HMM things.
   
@@ -111,9 +113,9 @@ class ProfileHMM(HMM):
         """Initialize as a BaseHMM, but then add some additional data
         """
         # Initialize BaseHMM with one dummy state
-        super().__init__( alphabet=alphabet, hidden_states = "x", init_probs = None, trans_probs = None, emit_probs = None, seed = None, precision=precision, tolerance=tolerance)
-    
-    # Generate and overwrite  states and probabilities using provided seqs
+        super().__init__(alphabet=alphabet, hidden_states = "x", init_probs = None, trans_probs = None, emit_probs = None, seed = None, precision=precision, tolerance=tolerance)
+        
+        # Generate and overwrite  states and probabilities using provided seqs
         col_classifiers = self._msa_to_classifiers(seqs)
         self._build_topology(col_classifiers)
         self._estimate_parameters(seqs, col_classifiers)
@@ -140,7 +142,7 @@ class ProfileHMM(HMM):
     def trans_probs(self, trans_probs):
         if trans_probs is None:
             self._transition = None
-        elif isinstance(emit_probs, dict):
+        elif isinstance(trans_probs, dict):
             self._transition = trans_probs
         else:
             raise SyntaxError('Transition probabilities must be None or a dictionary')
@@ -190,7 +192,8 @@ class ProfileHMM(HMM):
                 col_classifiers.append("I")
         
         return col_classifiers
-
+    
+    
     def _build_topology(self, col_classifiers: list[str]):
         """
         given: list of "M" / "I" classifiers
@@ -237,11 +240,8 @@ class ProfileHMM(HMM):
         self._hardcode_transition(f"M{mi-1}", f"M{mi}")
         self._hardcode_transition(f"I{mi-1}", f"M{mi}")
         self._hardcode_transition(f"D{mi-1}", f"M{mi}")
-
-        return
     
-    
-    def _get_residue_frequency(self,seqs):
+    def _get_residue_frequency(self, seqs):
         ''' helper function to take in the sequences, and create a list of
         counted residues the sequences alphabet
         Args:
@@ -259,8 +259,8 @@ class ProfileHMM(HMM):
         big_string = big_string.replace("-", "")  #remove the gaps
     
         alphabet = sorted(set(big_string)) #create an alphabet from our str
-        result_dict = dict.fromkeys(alphabet,0) #create the dict with keys
-  
+        result_dict = dict.fromkeys(alphabet, 0) #create the dict with keys
+        
         sum_of_all = 0
         for char in result_dict:
             result_dict[char] = big_string.count(char) # put counts into dict
@@ -268,26 +268,23 @@ class ProfileHMM(HMM):
         
         return(sum_of_all, result_dict)
     
-
+    
     def _calc_emissions_matrix(self, seqs: list[str], col_classifiers:list[str]):    
-        ''' Function that calculations the emission probs for our sequences
+        ''' Function that calculates the emission probs for our sequences
         Args:
             seqs:  list of sequences to estimate our emissions from
             col_classifiers: column classifiers for our model
-        Returns:
-            
         '''
         whole_alphabet = self.alphabet
         alphabet_size = len(whole_alphabet)
         num_hidden_states = len(self.hidden_states)
-        b = 1 # pseudocount!
         gap = "-"
         
-    ## Emission Matrix ; create for hidden_states x entire possible alphabet
-    ## First we count the residues
+        ## Emission Matrix ; create for hidden_states x entire possible alphabet
+        ## First we count the residues
         sum_all_res_cnts, all_res_cnts = self._get_residue_frequency(seqs)
         
-    # now do the emissions calculations; store in dictionary w
+        # now do the emissions calculations; store in dictionary w
         e_values = {}
         i_values = {}
         col_residues = ""
@@ -300,12 +297,12 @@ class ProfileHMM(HMM):
                     if not(char == gap):
                         cnt = col_residues.count(char) # number in this col
                         tot = len(col_residues)
-                        e_values[char]=(cnt + b)/(tot+(alphabet_size*b))
+                        e_values[char]=(cnt + PSEUDO_COUNT)/(tot+(alphabet_size * PSEUDO_COUNT))
                 
             elif classifier == "I":
                 for char in set(col_residues): #again cycle residues in col
                     if not(char == gap):
-                        i_values[char]=(all_res_cnts[char] +b)/ (sum_all_res_cnts + alphabet_size*b)
+                        i_values[char]=(all_res_cnts[char] + PSEUDO_COUNT)/ (sum_all_res_cnts + PSEUDO_COUNT * alphabet_size)
                        
             #else:???	set Dmi emission dict to None
         
@@ -343,19 +340,19 @@ class ProfileHMM(HMM):
         seq_labels = [] # list of a "list of seq"; rep the labeled seqs
         new_label = []  # list of states that represent a labeled seq
         
-        for seq in seqs:    # review list of seqs one seq at a time
+        for seq in seqs:
             seq_index = 0   # set to beginning of seq each time
-            match_index = 1 # start with M1 with each sequence
+            match_index = 0 # start with M1 with each sequence
             for classifier in col_classifiers: # look at classifications
                 if classifier == "M":
+                    match_index += 1
                     if seq[seq_index] == gap:
-                        new_label.append("D"+str(seq_index))
+                        new_label.append("D"+str(match_index))
                     else:
                         new_label.append("M"+str(match_index))
-                        match_index += 1
                 elif classifier == "I":
                     if not(seq[seq_index] == gap):
-                        new_label.append("I"+str(seq_index-1))
+                        new_label.append("I"+str(match_index))
                         # here is where we leave off the inserts!
                 seq_index += 1 # move to the next residue/state
             seq_labels.append(new_label)
@@ -365,7 +362,7 @@ class ProfileHMM(HMM):
         return(seq_labels)
     
     
-    def _calc_trans_matrix(self, labeled_seqs:list[list[str]]):
+    def _calc_trans_probs(self, labeled_seqs:list[list[str]]):
         ''' Calculates transition dict (sparse) from labeled_seqs list
             Because we are using a dictionary for our model, all of entries 
             do not need to be there, just the ones that our sequences 
@@ -375,96 +372,60 @@ class ProfileHMM(HMM):
             seq_len = number of items in our original sequences 
                      labeled_sequences do not contain "-", so they 
                      can be shorter!!!
-        Returns:
-            Dictionary: of transition matrix 
         '''
-        #Transition probabilities creating s->s' states, counting & calculation:
-        gap = '-'
+        self._transition["M0"]["M1"] = 1.0 # start state always goes to M1
         
-        for seq in labeled_seqs:                # create a paired list s->s'
-            paired_list = [pair for state in seq 
-                                    for pair in zip(seq, seq[1:])]
+        # Count up every state->state transition pair in the labeled seqs
+        transition_totals = Counter([])
+        for seq in labeled_seqs:
+            state_pairs = [pair for pair in zip(seq, seq[1:])]
+            transition_counts = Counter(state_pairs)
+            transition_totals += transition_counts
         
-        transition_counts = Counter(paired_list) # count transitions c(s,s')
+        # Save the counts to transition dict
+        for (from_state, to_state), count in transition_totals.items():
+            self._transition[from_state][to_state] = count
         
-        trans_dict = defaultdict(dict)
-        
-                                                 #sort into from_state->to_state
-        for (from_state, to_state), count in transition_counts.items():
-            trans_dict[from_state][to_state] = count
-        
-        for from_state in trans_dict: 
-            total = sum(trans_dict[from_state].values()) #sum the row!
-            for to_state in trans_dict[from_state]:
-                trans_dict[from_state][to_state] /= total # NORMALIZE
-                
-        trans_probs = dict(trans_dict)    # our sparse dictionary is done!
-        return(trans_probs)
+        # Convert counts to probabilities. 
+        for from_state in self._transition: 
+            total = sum(self._transition[from_state].values()) #sum the row!
+            for to_state in self._transition[from_state]:
+                self._transition[from_state][to_state] += PSEUDO_COUNT 
+                self._transition[from_state][to_state] /= (total + PSEUDO_COUNT*3) # NORMALIZE
     
     
     def _estimate_parameters(self, seqs: list[str], col_classifiers: list[str]):
         """
-        given a list of aligned training FASTA sequences, and a prepopulated           col_classifier, estimate the transitions and emissions matrices 
-        based both input.
-        given: 
+        given a list of aligned training FASTA sequences, and a prepopulated 
+        col_classifier, estimate the transitions and emissions matrices 
+        
+        Args: 
             seqs: list of aligned FASTA sequences to train on
             col_classifiers: list of "M" / "I" classifiers
-    
-        using: 
-            self.alphabet
-            self.hidden_states
-        setting/referrencing
-            self.init_probs # already set by toplogy
-            self.trans_probs # our created transition probs 
-            self.emit_probs # our created emission probs
         """
-        L = len(seqs[0])
-        gap = "-"
-        b = 1       # aka psseudocount
-
-
-  	    # Initial State probs
-  	    # these are set already by _build_topology()
-  	    # init_probs needs M0 = 1.0 and I0 = 0.0
+        
+        
+        # Initial State probs
+        #   these are set already by _build_topology()
         if TESTING: print(f"init probs, {self.init_probs}") 
         
-        
-	    # Middle state probs
-	    ## Emission Matrix ; 
-	    
-        ## First we count the residues in our sequences
-        sum_all_res_cnts, all_res_cnts = self._get_residue_frequency(seqs)
-        
-        # Calculate emissions; store in dict, will need to update class
+        # Emission probabilities
         emission_probs = self._calc_emissions_matrix(seqs, col_classifiers)
+        #if TESTING: print(f"emission_probs shape: {emission_probs.shape}")
+        #if TESTING: print(f"emission_probs: {emission_probs}")
+        #  self.emit_probs = emission_probs
         
-        #set in class dictionary
-        if TESTING: print(f"emission_probs shape: {emission_probs.shape}")
-        if TESTING: print(f"emission_probs: {emission_probs}")
-    #  self.emit_probs = emission_probs	 
-    
-    
-        ## Transition Matrix/probabilities
-        
-        # Given the labels array from above: storing transmission into dict
-        #  first build the label list
-        # then do the transition matrix
-        seq_labels = self._build_label_sequences(seqs,col_classifiers)
-        
-        transmission_probs = self._calc_trans_matrix(seq_labels)
+        # Transition probabilities 
+        seq_labels = self._build_label_sequences(seqs, col_classifiers)
+        print(f"SEQ_LABELS: {seq_labels}")
         
         
-        #set in trans_probs portion of the dictionary
+        self._calc_trans_probs(seq_labels)
+        
         if TESTING: print(f"hidden_states length: {len(self.hidden_states)}")
-        if TESTING: print(f"hidden_states: {hidden_states}")
-        if TESTING: print(f"transmission_probs: {transmission_probs}")
-    # self.trans_probs = transmission_probs
-        
-        # Terminal state
-        #	end probabilities = 0
-        #	set end state emission dict to None
-
-        return
+        if TESTING: print(f"hidden_states: {self.hidden_states}")
+        if TESTING: print(f"transmission_probs: {self._transition}")
+        # self.trans_probs = transmission_probs
 ```
 
 ```{python load-data}
@@ -483,8 +444,8 @@ print(f"{test_sequences1}")
 
 # do stuff
 testHMM = ProfileHMM(training_sequences1,alphabet=AA_ALPHABET)
-testHMM2 = ProfileHMM(training_sequences2,alphabet=AA_ALPHABET)
+#testHMM2 = ProfileHMM(training_sequences2,alphabet=AA_ALPHABET)
 print(testHMM)
-print(testHMM2)
+#print(testHMM2)
 
 ```
