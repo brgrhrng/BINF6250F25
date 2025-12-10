@@ -20,12 +20,13 @@ reticulate::use_condaenv(condaenv = "r-reticulate")
 ```{python py-imports}
 from HMM import HMM
 import numpy as np
+from collections import Counter, defaultdict
 
 # Constants for Ease of use
 AA_ALPHABET = "ARNDCEQGHILKMFPSTWYV"
 NT_ALPHABET = "ATCG"
 
-TESTING = False
+TESTING = True
 ```
 
 
@@ -240,68 +241,22 @@ class ProfileHMM(HMM):
         
         return(sum_of_all, result_dict)
     
-    
-    def _estimate_parameters(self, seqs: list[str], col_classifiers: list[str]):
-        """
-        given a list of aligned training FASTA sequences, and a prepopulated           col_classifier, estimate the transitions and emissions matrices 
-        based both input.
-        given: 
-            seqs: list of aligned FASTA sequences to train on
-            col_classifiers: list of "M" / "I" classifiers
-    
-        using: 
-            self.alphabet
-            self.hidden_states
-        setting/referrencing
-            self.init_probs # already set by toplogy
-            self.trans_probs # our created transition probs 
-            self.emit_probs # our created emission probs
-        """
-        num_hidden_states = len(self.hidden_states)
-        L = len(seqs[0])
-        gap = "-"
-        b = 1 # aka psseudocount
-	
+
+    def _calc_emissions_matrix(self, seqs: list[str], col_classifiers:list[str]):    
+        ''' Function that calculations the emission probs for our sequences
+        Args:
+            seqs:  list of sequences to estimate our emissions from
+            col_classifiers: column classifiers for our model
+        Returns:
+            
+        '''
         whole_alphabet = self.alphabet
         alphabet_size = len(whole_alphabet)
-	    
-	    # build labels array:
-        seq_labels = [] # list of a "list of seq"; rep the labeled seqs
-        new_label = []  # list of states that represent a labeled seq
-        if TESTING: print(f"col_classifiers: {col_classifiers}")
-        if TESTING: print(f"seqs: {seqs}")
-        for seq in seqs:    # review list of seqs one seq at a time
-            seq_index = 0   # set to begining of seq each time
-            match_index = 1 # start with M1 with each sequence
-            for classifier in col_classifiers: # look at classifications
-                if classifier == "M":
-                    if seq[seq_index] == gap:
-                        new_label.append("D"+str(seq_index))
-                    else:
-                        new_label.append("M"+str(match_index))
-                        match_index += 1
-                elif classifier == "I":
-                    if seq[seq_index] == gap:
-                        new_label.append("-")
-                    else:
-                        new_label.append("I"+str(seq_index-1)) 
-                seq_index += 1 # move to the next residue/state
-            seq_labels.append(new_label)
-            new_label=[] # reset for the next sequence
-	        #end for seq_index, classifier
-        #end for seq
-        if TESTING: print(seq_labels)
+        num_hidden_states = len(self.hidden_states)
+        b = 1 # pseudocount!
+        gap = "-"
         
-    # Now we can start creating prob matrices
-	
-  	# Initial State probs
-  	  # these are set already by _build_topology()
-  	  # init_probs needs M0 = 1.0 and I0 = 0.0
-  	  # emision dict empty; 
-        if TESTING: print(f"init probs, {self.init_probs}") 
-        
-	# Middle state probs
-	## Emission Matrix ; create for hidden_states x entire possible alphabet
+    ## Emission Matrix ; create for hidden_states x entire possible alphabet
     ## First we count the residues
         sum_all_res_cnts, all_res_cnts = self._get_residue_frequency(seqs)
         
@@ -326,8 +281,10 @@ class ProfileHMM(HMM):
                         i_values[char]=(all_res_cnts[char] +b)/ (sum_all_res_cnts + alphabet_size*b)
                        
             #else:???	set Dmi emission dict to None
+        
             seq_index += 1
-    
+        # end for classifier loop
+        
         emission_probs = np.full((num_hidden_states,alphabet_size),0)	    #now we will overwrite the parts of the emission_probs array with our seq based residue "emissions"
     
         for s, state in self.hidden_states: #sum emisions for each state
@@ -344,35 +301,142 @@ class ProfileHMM(HMM):
             
             row_sums = emission_probs.sum(axis=1, keepdims=True)
             emission_probs = np.divide(emission_probs, row_sums, where=row_sums!=0)
-    
-        if TESTING: print(f"emission_probs: {emission_probs}")
-		  
-      #  self.emit_probs(emission_probs)	 
-		
-    ## Transition Matrix
-        # Build labels array # hidden_states x L (sequence length) (done above)
-        # count them; calculate probs then normalize
-        # set in class
-  
-  #Transition probabilities counting, calculation:
-       # seq_state_counts = Counter(seq_labels)
-
-#            From labeled paths (seq_labels), 
-#                count each observed state transition 's→s' across all sequences.
-#            Convert counts to probabilities with pseudocounts:
-#                a(s,s') = c(s,s') + b / summation s [c(s,s'') + b*size_of_alphabet]
-#                    where b is a small pseudocount
         
-#        Each row of the transition matrix must sum to 1.0 I.e NORMALIZE
-			
-	# Terminal state
-#	end probabilities = 0
-#	set end state emission dict to None
-	
+        return(emission_probs)
+    
+    
+    def _build_label_sequences(self, seqs: list[str], col_classifiers: list[str]):
+        ''' Given a classification code; creates a labeled lists of 
+            each sequence given to the method in seqs
+            
+            Returns: list of strings - the labeled sequences
+        '''
+        gap="-"
+         # build Labels array:
+        seq_labels = [] # list of a "list of seq"; rep the labeled seqs
+        new_label = []  # list of states that represent a labeled seq
+        
+        for seq in seqs:    # review list of seqs one seq at a time
+            seq_index = 0   # set to beginning of seq each time
+            match_index = 1 # start with M1 with each sequence
+            for classifier in col_classifiers: # look at classifications
+                if classifier == "M":
+                    if seq[seq_index] == gap:
+                        new_label.append("D"+str(seq_index))
+                    else:
+                        new_label.append("M"+str(match_index))
+                        match_index += 1
+                elif classifier == "I":
+                    if not(seq[seq_index] == gap):
+                        new_label.append("I"+str(seq_index-1))
+                        # here is where we leave off the inserts!
+                seq_index += 1 # move to the next residue/state
+            seq_labels.append(new_label)
+            new_label=[] # reset for the next sequence
+	        #end for seq_index, classifier
+        #end for seq
+        return(seq_labels)
+    
+    
+    def _calc_trans_matrix(self, labeled_seqs:list[list[str]]):
+        ''' Calculates transition dict (sparse) from labeled_seqs list
+            Because we are using a dictionary for our model, all of entries 
+            do not need to be there, just the ones that our sequences 
+            generated
+        Args:
+            labeled_seqs list of listed sequence "label names" 
+            seq_len = number of items in our original sequences 
+                     labeled_sequences do not contain "-", so they 
+                     can be shorter!!!
+        Returns:
+            Dictionary: of transition matrix 
+        '''
+        #Transition probabilities creating s->s' states, counting & calculation:
+        gap = '-'
+        
+        for seq in labeled_seqs:                # create a paired list s->s'
+            paired_list = [pair for state in seq 
+                                    for pair in zip(seq, seq[1:])]
+        
+        transition_counts = Counter(paired_list) # count transitions c(s,s')
+        
+        trans_dict = defaultdict(dict)
+        
+                                                 #sort into from_state->to_state
+        for (from_state, to_state), count in transition_counts.items():
+            trans_dict[from_state][to_state] = count
+        
+        for from_state in trans_dict: 
+            total = sum(trans_dict[from_state].values()) #sum the row!
+            for to_state in trans_dict[from_state]:
+                trans_dict[from_state][to_state] /= total # NORMALIZE
+                
+        trans_probs = dict(trans_dict)    # our sparse dictionary is done!
+        return(trans_probs)
+    
+    
+    def _estimate_parameters(self, seqs: list[str], col_classifiers: list[str]):
+        """
+        given a list of aligned training FASTA sequences, and a prepopulated           col_classifier, estimate the transitions and emissions matrices 
+        based both input.
+        given: 
+            seqs: list of aligned FASTA sequences to train on
+            col_classifiers: list of "M" / "I" classifiers
+    
+        using: 
+            self.alphabet
+            self.hidden_states
+        setting/referrencing
+            self.init_probs # already set by toplogy
+            self.trans_probs # our created transition probs 
+            self.emit_probs # our created emission probs
+        """
+        L = len(seqs[0])
+        gap = "-"
+        b = 1       # aka psseudocount
+
+
+  	    # Initial State probs
+  	    # these are set already by _build_topology()
+  	    # init_probs needs M0 = 1.0 and I0 = 0.0
+        if TESTING: print(f"init probs, {self.init_probs}") 
+        
+        
+	    # Middle state probs
+	    ## Emission Matrix ; 
+	    
+        ## First we count the residues in our sequences
+        sum_all_res_cnts, all_res_cnts = self._get_residue_frequency(seqs)
+        
+        # Calculate emissions; store in dict, will need to update class
+        emission_probs = self._calc_emissions_matrix(seqs, col_classifiers)
+        
+        #set in class dictionary
+        if TESTING: print(f"emission_probs shape: {emission_probs.shape}")
+        if TESTING: print(f"emission_probs: {emission_probs}")
+    #  self.emit_probs = emission_probs	 
+    
+    
+        ## Transition Matrix/probabilities
+        
+        # Given the labels array from above: storing transmission into dict
+        #  first build the label list
+        # then do the transition matrix
+        seq_labels = self._build_label_sequences(seqs,col_classifiers)
+        
+        transmission_probs = self._calc_trans_matrix(seq_labels)
+        
+        #set in trans_probs portion of the dictionary
+        if TESTING: print(f"hidden_states length: {len(self.hidden_states)}")
+        if TESTING: print(f"hidden_states: {hidden_states}")
+        if TESTING: print(f"transmission_probs: {transmission_probs}")
+    # self.trans_probs = transmission_probs
+        
+        # Terminal state
+        #	end probabilities = 0
+        #	set end state emission dict to None
+
         return
-
-
-
 ```
 
 ```{python load-data}
