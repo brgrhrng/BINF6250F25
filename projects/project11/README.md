@@ -6,7 +6,6 @@ A profile HMM is a position-specific HMM architecture tailored to model a conser
 
 Key Features
 * Position-specific emissions:
-<<<<<<< HEAD
 ...Match states Mi use column-specific amino acid distributions estimated from the MSA.
 ...Insertion states Ii share a background composition independent of position.
 * Explicit gap handling:
@@ -24,7 +23,6 @@ Key Features
 ** Structured transitions between Mi,Ii,Di encode allowed motif-length variation.
 * Probabilistic scoring:
 ** Forward, Viterbi, and Forward–Backward algorithms from HMM.py are reused to score sequences and, if desired, retrain parameters.
->>>>>>> f9d47a837e18819e8c958b4032137161ffb1878e
 
 # Pseudocode
 Put pseudocode in this box:
@@ -214,7 +212,9 @@ Downtime after 7pm on Sunday night because the machine hosting the OOD server wa
 
 # Personal Reflections
 ## Brooks
-Group leader's reflection on the project
+I am happy with the construction of our HMM and probability calculations. It's really frustrating that we were not wholly successful in running the provided helper funcs (since they assume that we save prob 0 for transitions between states that should never have edges in our model, ex M0->D5).
+
+In theory we could have just included these in our transitions dict, but this would have ballooned in size quickly, and wouldn't really make a lot of conceptual sense when profileHMMs have exactly three outgoing edges for each internal node. Without editing the provided HMM.py directly, our best option really would be to modify the property getters for our dictionaries to return 0 values when the user attempts to access unencoded transitions--but we ran out of time to get this properly working (being a nested dict makes this a little more complicated). It's frustrating to be *this* close to feature complete, with a pretty strong idea of what we could do to fix things--but c'est la vie. 
 
 ## Jacque
 I'm tired.  Not much left to give regarding reflections.  This sounded like a basic 
