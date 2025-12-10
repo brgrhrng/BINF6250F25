@@ -21,6 +21,7 @@ reticulate::use_condaenv(condaenv = "r-reticulate")
 from HMM import HMM
 import numpy as np
 from collections import Counter, defaultdict
+import copy
 
 # Constants for Ease of use
 AA_ALPHABET = "ARNDCEQGHILKMFPSTWYV"
@@ -97,7 +98,7 @@ def read_fasta(filename: str):
 
 ```{python class-definition}
 
-PSEUDO_COUNT = 0.01 # small offset added to counts in prob calcs to avoid div-0 errors
+PSEUDO_COUNT = 0.001 # small offset added to counts in prob calcs to avoid div-0 errors
 
 class ProfileHMM(HMM):
     """This is a profile HMM, it does profile HMM things.
@@ -269,64 +270,52 @@ class ProfileHMM(HMM):
         return(sum_of_all, result_dict)
     
     
-    def _calc_emissions_matrix(self, seqs: list[str], col_classifiers:list[str]):    
+    def _calc_emissions_probs(self, seqs: list[str], col_classifiers:list[str]):    
         ''' Function that calculates the emission probs for our sequences
         Args:
             seqs:  list of sequences to estimate our emissions from
             col_classifiers: column classifiers for our model
         '''
+        self._emission = {} # reset emission dict
+        
         whole_alphabet = self.alphabet
         alphabet_size = len(whole_alphabet)
         num_hidden_states = len(self.hidden_states)
         gap = "-"
         
-        ## Emission Matrix ; create for hidden_states x entire possible alphabet
         ## First we count the residues
         sum_all_res_cnts, all_res_cnts = self._get_residue_frequency(seqs)
         
+        # And convert to %s to get background probs
+        background_emission_probs = dict((char, (count+PSEUDO_COUNT) / (sum_all_res_cnts+PSEUDO_COUNT*alphabet_size)) for char, count in all_res_cnts.items())
+        
+        print(f"RES FREQS: {all_res_cnts}, TOTAL: {sum_all_res_cnts}")
+        print(f"CLASSIFIERS: {col_classifiers}")
+        
         # now do the emissions calculations; store in dictionary w
-        e_values = {}
-        i_values = {}
-        col_residues = ""
-        for classifier in col_classifiers:
-            seq_index = 1
-            for seq in seqs:
-                col_residues+=seq[seq_index] # str of the residues in the seq_index column 
+        self._emission[f"M0"] = None # Start is silent
+        m_index = 1
+        for seq_index, classifier in enumerate(col_classifiers):
             if classifier == "M":
-                for char in set(col_residues):  # cycle through unique residues
-                    if not(char == gap):
-                        cnt = col_residues.count(char) # number in this col
-                        tot = len(col_residues)
-                        e_values[char]=(cnt + PSEUDO_COUNT)/(tot+(alphabet_size * PSEUDO_COUNT))
+                column = [seq[seq_index] for seq in seqs]
+                residues = set(column)
+                m_emissions = {}
                 
-            elif classifier == "I":
-                for char in set(col_residues): #again cycle residues in col
+                for char in residues: # cycle through unique residues
                     if not(char == gap):
-                        i_values[char]=(all_res_cnts[char] + PSEUDO_COUNT)/ (sum_all_res_cnts + PSEUDO_COUNT * alphabet_size)
-                       
-            #else:???	set Dmi emission dict to None
-        
-            seq_index += 1
-        # end for classifier loop
-        
-        emission_probs = np.full((num_hidden_states,alphabet_size),0)	    #now we will overwrite the parts of the emission_probs array with our seq based residue "emissions"
-    
-        for s, state in self.hidden_states: #sum emisions for each state
-            row_sum = 0
-            if state == "M":
-                for e, char in alphabet:
-                    if e_values[char]:
-                        emission_probs[s,e] = e_values[char]
-            if state == "I":
-                for e, char in alphabet:
-                    if i_values[char]:
-                        emission_probs[s,e] = i_values[char]
-            # if state == "D": no emission values for D, leave as 0
-            
-            row_sums = emission_probs.sum(axis=1, keepdims=True)
-            emission_probs = np.divide(emission_probs, row_sums, where=row_sums!=0)
-        
-        return(emission_probs)
+                        cnt = column.count(char)
+                        tot = len(column)
+                        m_emissions[char]=(cnt + PSEUDO_COUNT)/(tot+(len(residues) * PSEUDO_COUNT))
+                        
+                self._emission[f"M{m_index}"] = m_emissions
+                
+                # While we're at it, populate the insert/deletion states for the same index
+                self._emission[f"I{m_index}"] = copy.deepcopy(background_emission_probs)
+                self._emission[f"D{m_index}"] = None
+                
+                m_index += 1
+                
+        self._emission[f"M{m_index}"] = None # Terminal state is silent
     
     
     def _build_label_sequences(self, seqs: list[str], col_classifiers: list[str]):
@@ -403,29 +392,15 @@ class ProfileHMM(HMM):
             seqs: list of aligned FASTA sequences to train on
             col_classifiers: list of "M" / "I" classifiers
         """
-        
-        
         # Initial State probs
         #   these are set already by _build_topology()
-        if TESTING: print(f"init probs, {self.init_probs}") 
         
         # Emission probabilities
-        emission_probs = self._calc_emissions_matrix(seqs, col_classifiers)
-        #if TESTING: print(f"emission_probs shape: {emission_probs.shape}")
-        #if TESTING: print(f"emission_probs: {emission_probs}")
-        #  self.emit_probs = emission_probs
+        self._calc_emissions_probs(seqs, col_classifiers)
         
         # Transition probabilities 
         seq_labels = self._build_label_sequences(seqs, col_classifiers)
-        print(f"SEQ_LABELS: {seq_labels}")
-        
-        
         self._calc_trans_probs(seq_labels)
-        
-        if TESTING: print(f"hidden_states length: {len(self.hidden_states)}")
-        if TESTING: print(f"hidden_states: {self.hidden_states}")
-        if TESTING: print(f"transmission_probs: {self._transition}")
-        # self.trans_probs = transmission_probs
 ```
 
 ```{python load-data}
@@ -438,9 +413,9 @@ test_file1="./data/phmm_test_sequences.fasta"
 training_sequences1 = read_fasta(train_file1)
 print(f"{training_sequences1}")
 training_sequences2 = read_fasta(train_file2)
-print(f"{training_sequences2}")
+#print(f"{training_sequences2}")
 test_sequences1 = read_fasta(test_file1)
-print(f"{test_sequences1}")
+#print(f"{test_sequences1}")
 
 # do stuff
 testHMM = ProfileHMM(training_sequences1,alphabet=AA_ALPHABET)
