@@ -27,7 +27,7 @@ import copy
 AA_ALPHABET = "ARNDCEQGHILKMFPSTWYV"
 NT_ALPHABET = "ATCG"
 
-TESTING = True
+TESTING = False
 ```
 
 
@@ -289,9 +289,6 @@ class ProfileHMM(HMM):
         # And convert to %s to get background probs
         background_emission_probs = dict((char, (count+PSEUDO_COUNT) / (sum_all_res_cnts+PSEUDO_COUNT*alphabet_size)) for char, count in all_res_cnts.items())
         
-        print(f"RES FREQS: {all_res_cnts}, TOTAL: {sum_all_res_cnts}")
-        print(f"CLASSIFIERS: {col_classifiers}")
-        
         # now do the emissions calculations; store in dictionary w
         self._emission[f"M0"] = None # Start is silent
         m_index = 1
@@ -412,15 +409,19 @@ test_file1="./data/phmm_test_sequences.fasta"
 # import data from provided files
 training_sequences1 = read_fasta(train_file1)
 print(f"{training_sequences1}")
+testHMM = ProfileHMM(training_sequences1, alphabet=AA_ALPHABET)
+# print(testHMM)
 training_sequences2 = read_fasta(train_file2)
-#print(f"{training_sequences2}")
+print(f"{training_sequences2}")
+testHMM2 = ProfileHMM(training_sequences2,alphabet=AA_ALPHABET)
+#print(testHMM2)
+## Output from above lines saved to output1.txt (then print statements were removed
+  
 test_sequences1 = read_fasta(test_file1)
-#print(f"{test_sequences1}")
+print(f"{test_sequences1}")
 
-# do stuff
-testHMM = ProfileHMM(training_sequences1,alphabet=AA_ALPHABET)
-#testHMM2 = ProfileHMM(training_sequences2,alphabet=AA_ALPHABET)
-print(testHMM)
+# print(testHMM.forward(test_sequences1[0]))
+
 #print(testHMM2)
 
 ```
