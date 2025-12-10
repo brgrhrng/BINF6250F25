@@ -117,12 +117,39 @@ class ProfileHMM(HMM):
         col_classifiers = self._msa_to_classifiers(seqs)
         self._build_topology(col_classifiers)
         self._estimate_parameters(seqs, col_classifiers)
-  
-  
+    
+    
+    @property
+    def emit_probs(self):
+        return self._emission
+    
+    @emit_probs.setter
+    def emit_probs(self, emit_probs):
+        if emit_probs is None:
+            self._emission = None
+        elif isinstance(emit_probs, dict):
+            self._emission = emit_probs
+        else:
+            raise SyntaxError('Emission probabilities must be None or a dictionary')
+    
+    @property
+    def trans_probs(self):
+        return self._transition
+    
+    @trans_probs.setter
+    def trans_probs(self, trans_probs):
+        if trans_probs is None:
+            self._transition = None
+        elif isinstance(emit_probs, dict):
+            self._transition = trans_probs
+        else:
+            raise SyntaxError('Transition probabilities must be None or a dictionary')
+    
+    
     @property
     def hidden_states(self):
         return self._hidden_states
-  
+    
     @hidden_states.setter
     def hidden_states(self, hidden_states):
         """Allow multi-char state names in hidden_states, storing as a list of str"""
@@ -425,6 +452,7 @@ class ProfileHMM(HMM):
         seq_labels = self._build_label_sequences(seqs,col_classifiers)
         
         transmission_probs = self._calc_trans_matrix(seq_labels)
+        
         
         #set in trans_probs portion of the dictionary
         if TESTING: print(f"hidden_states length: {len(self.hidden_states)}")
